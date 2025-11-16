@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-11-16
+
+### Added
+- **Makefile**: Build automation for environment setup and testing
+  - `make env` - Create and set up complete development environment
+  - `make install` / `make install-dev` - Separate installation steps
+  - `make test` - Run tests with pytest and coverage
+  - `make clean` - Clean up virtual environment and build files
+
+### Changed
+- **Project Structure**: Reorganized as proper Python package
+  - Moved application code to `src/pdf_summarizer/` directory
+  - Created `__init__.py` for package initialization
+  - Improved organization: templates, static, and uploads now in package directory
+  
+- **Build System**: Updated to use Hatchling properly
+  - Configured `pyproject.toml` with correct package detection
+  - Uses optional dependencies for dev tools instead of dependency groups
+  - Supports proper editable installs with `-e .` and `-e ".[dev]"`
+
+- **Development Workflow**:
+  - `.venv` as standard virtual environment directory
+  - Simplified installation: single `make env` command for full setup
+  - Dependencies managed exclusively in `pyproject.toml`
+
+---
+
 ## [0.2.0] - 2025-11-16
 
 ### Added

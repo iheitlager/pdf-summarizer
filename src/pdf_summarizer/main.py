@@ -20,7 +20,7 @@ import io
 import uuid
 
 # Import logging configuration
-from logging_config import (
+from .logging_config import (
     setup_logging, log_upload, log_processing, log_api_call,
     log_cache_hit, log_cache_miss, log_rate_limit, log_cleanup,
     log_error_with_context
