@@ -5,6 +5,70 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2025-11-16
+
+### Added
+
+#### Comprehensive Test Suite
+- **Test Infrastructure**: Complete pytest-based test suite with 90%+ code coverage target
+- **Test Files**: 13 comprehensive test modules covering all application components:
+  - `tests/conftest.py` - Core fixtures and test configuration (20+ fixtures)
+  - `tests/test_helpers.py` - Unit tests for all helper functions (7 test classes)
+  - `tests/test_models.py` - Database model tests (4 test classes)
+  - `tests/test_forms.py` - Form validation tests
+  - `tests/test_routes.py` - Route integration tests (5 test classes)
+  - `tests/test_error_handlers.py` - Error handler tests
+  - `tests/test_caching.py` - Caching mechanism tests
+  - `tests/test_cleanup.py` - Cleanup job tests
+  - `tests/test_session.py` - Session management tests
+  - `tests/test_logging.py` - Logging functionality tests
+  - `tests/test_integration.py` - End-to-end workflow tests (3 test classes)
+
+#### Test Fixtures and Utilities
+- **Mock Anthropic API**: Automated mocking for Claude API calls in all tests
+- **PDF Generators**: Dynamic PDF creation using reportlab for test data:
+  - Sample single-page PDFs
+  - Multi-page PDFs (3 pages)
+  - Empty PDFs
+  - Corrupted PDFs
+  - Large PDFs (1MB+)
+- **Database Fixtures**: Auto-reset SQLite in-memory database between tests
+- **Mock Loggers**: Capture and verify logging output in tests
+- **Temporary Directories**: Isolated file storage for each test
+
+#### Test Coverage Areas
+- **Unit Tests**: All helper functions (hashing, caching, extraction, summarization, file handling, cleanup, sessions)
+- **Integration Tests**: Complete upload→process→view→download workflows
+- **Database Tests**: Model creation, relationships, queries, cascade deletion
+- **Form Tests**: Validation, CSRF protection, file type/size limits
+- **Route Tests**: All endpoints with various scenarios (success, errors, edge cases)
+- **Error Handling**: 404, 500, 429 error handlers with proper logging
+- **Caching Tests**: Cache hits/misses, cross-session caching, API call avoidance
+- **Session Tests**: Isolation, persistence, multi-user scenarios
+- **Cleanup Tests**: Date-based deletion, metrics logging, error handling
+- **Logging Tests**: Log creation, formatting, API logging, cache event logging
+
+### Dependencies
+- Added `pytest>=8.0.0` for test framework
+- Added `pytest-flask>=1.3.0` for Flask test integration
+- Added `pytest-cov>=4.1.0` for coverage reporting
+- Added `pytest-mock>=3.12.0` for advanced mocking
+- Added `reportlab>=4.0.0` for dynamic PDF generation in tests
+
+### Configuration
+- Updated `pyproject.toml` with pytest configuration:
+  - Test discovery patterns
+  - Coverage reporting (terminal + HTML)
+  - Coverage thresholds and exclusions
+- Configured coverage to exclude tests/, venv/, and third-party code
+
+### Documentation
+- Added test suite documentation to README.md
+- Documented test execution commands
+- Added coverage reporting instructions
+
+---
+
 ## [0.2.1] - 2025-11-16
 
 ### Added

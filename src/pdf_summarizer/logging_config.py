@@ -2,6 +2,7 @@
 Logging configuration for PDF Summarizer application
 Provides structured logging with rotating file handlers
 """
+
 import logging
 import os
 from logging.handlers import RotatingFileHandler
@@ -21,45 +22,37 @@ def setup_logging(app):
         app: Flask application instance
     """
     # Create logs directory if it doesn't exist
-    log_dir = Path('logs')
+    log_dir = Path("logs")
     log_dir.mkdir(exist_ok=True)
 
     # Get log level from environment or default to INFO
-    log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
+    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
     numeric_level = getattr(logging, log_level, logging.INFO)
 
     # Create formatters
     detailed_formatter = logging.Formatter(
-        '[%(asctime)s] %(levelname)s in %(module)s (%(funcName)s): %(message)s'
+        "[%(asctime)s] %(levelname)s in %(module)s (%(funcName)s): %(message)s"
     )
 
-    simple_formatter = logging.Formatter(
-        '[%(asctime)s] %(levelname)s: %(message)s'
-    )
+    simple_formatter = logging.Formatter("[%(asctime)s] %(levelname)s: %(message)s")
 
     # Main application log handler
     app_handler = RotatingFileHandler(
-        log_dir / 'app.log',
-        maxBytes=10 * 1024 * 1024,  # 10MB
-        backupCount=5
+        log_dir / "app.log", maxBytes=10 * 1024 * 1024, backupCount=5  # 10MB
     )
     app_handler.setLevel(numeric_level)
     app_handler.setFormatter(detailed_formatter)
 
     # Error log handler (errors only)
     error_handler = RotatingFileHandler(
-        log_dir / 'error.log',
-        maxBytes=10 * 1024 * 1024,  # 10MB
-        backupCount=5
+        log_dir / "error.log", maxBytes=10 * 1024 * 1024, backupCount=5  # 10MB
     )
     error_handler.setLevel(logging.ERROR)
     error_handler.setFormatter(detailed_formatter)
 
     # API log handler (for external API calls)
     api_handler = RotatingFileHandler(
-        log_dir / 'api.log',
-        maxBytes=10 * 1024 * 1024,  # 10MB
-        backupCount=5
+        log_dir / "api.log", maxBytes=10 * 1024 * 1024, backupCount=5  # 10MB
     )
     api_handler.setLevel(logging.INFO)
     api_handler.setFormatter(simple_formatter)
@@ -76,7 +69,7 @@ def setup_logging(app):
     app.logger.addHandler(console_handler)
 
     # Create API logger
-    api_logger = logging.getLogger('api')
+    api_logger = logging.getLogger("api")
     api_logger.setLevel(logging.INFO)
     api_logger.addHandler(api_handler)
     api_logger.addHandler(console_handler)
@@ -85,20 +78,16 @@ def setup_logging(app):
     api_logger.propagate = False
 
     # Log startup
-    app.logger.info('='*50)
-    app.logger.info('PDF Summarizer Application Started')
-    app.logger.info(f'Log Level: {log_level}')
-    app.logger.info(f'Debug Mode: {app.debug}')
-    app.logger.info('='*50)
+    app.logger.info("PDF Summarizer Application Started")
+    app.logger.info(f"Log Level: {log_level}")
+    app.logger.info(f"Debug Mode: {app.debug}")
 
     return api_logger
 
 
 def log_upload(logger, filename, file_size, session_id):
     """Log file upload event"""
-    logger.info(
-        f"Upload: {filename} | Size: {file_size} bytes | Session: {session_id[:8]}..."
-    )
+    logger.info(f"Upload: {filename} | Size: {file_size} bytes | Session: {session_id[:8]}...")
 
 
 def log_processing(logger, filename, pages, chars, duration):
@@ -137,14 +126,10 @@ def log_rate_limit(logger, identifier, endpoint):
 def log_cleanup(logger, deleted_count, freed_space_mb):
     """Log cleanup operation"""
     logger.info(
-        f"Cleanup completed: {deleted_count} files deleted | "
-        f"{freed_space_mb:.2f} MB freed"
+        f"Cleanup completed: {deleted_count} files deleted | " f"{freed_space_mb:.2f} MB freed"
     )
 
 
 def log_error_with_context(logger, error, context):
     """Log error with additional context"""
-    logger.error(
-        f"Error: {str(error)} | Context: {context}",
-        exc_info=True
-    )
+    logger.error(f"Error: {str(error)} | Context: {context}", exc_info=True)

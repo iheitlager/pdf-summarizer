@@ -24,6 +24,7 @@ wheels/
 .venv/
 uv.lock
 .python-version
+logs/
 
 # Flask
 instance/

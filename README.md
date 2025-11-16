@@ -1,6 +1,6 @@
 # PDF Summarizer
 
-**Version**: 0.2.1 | [Changelog](./CHANGELOG.md)
+**Version**: 0.2.2 | [Changelog](./CHANGELOG.md)
 
 A Flask web application that uploads PDF files and generates AI-powered summaries using Anthropic's Claude API.
 
@@ -143,12 +143,16 @@ Inspiration from [here](https://medium.com/coding-nexus/the-best-ai-coding-setup
 │       │   └── js/
 │       │       └── main.js         # Client-side JavaScript
 │       ├── uploads/                # PDF file storage directory
+├── tests/                          # Unit and integration tests
+│   ├── __init__.py                 # Test package initialization
+│   ├── test_*.py                   # Test modules
 ├── pyproject.toml                  # Project dependencies and configuration
 ├── Makefile                        # Build automation (make env, make test, make clean)
 ├── .env.example                    # Environment variables template
 ├── .gitignore                      # Git ignore rules
 ├── README.md                       # Project documentation
 ├── CHANGELOG.md                    # Version history and feature changelog
+```
 ```
 
 ## Database Schema
@@ -237,7 +241,11 @@ python main.py
 
 ### Testing
 
-Run tests with pytest and coverage reporting:
+The project includes a comprehensive test suite with 90%+ code coverage targeting all application components.
+
+#### Running Tests
+
+Run the complete test suite with coverage:
 
 ```bash
 make test
@@ -246,9 +254,78 @@ make test
 Or manually:
 ```bash
 pytest
-# View HTML coverage report
+```
+
+#### Coverage Reports
+
+View coverage in the terminal:
+```bash
+pytest --cov=. --cov-report=term-missing
+```
+
+Generate and view HTML coverage report:
+```bash
+pytest --cov=. --cov-report=html
 open htmlcov/index.html
 ```
+
+#### Test Structure
+
+The test suite includes 13 comprehensive test modules:
+
+- **`tests/conftest.py`** - Core fixtures and test configuration (20+ fixtures)
+  - Mock Anthropic API responses
+  - PDF generators (sample, multi-page, empty, corrupted, large)
+  - Database fixtures with auto-reset
+  - Temporary directories and mock loggers
+
+- **Unit Tests**:
+  - `test_helpers.py` - All helper functions (hashing, caching, extraction, summarization, file handling, cleanup, sessions)
+  - `test_models.py` - Database models (creation, relationships, queries, cascade deletion)
+  - `test_forms.py` - Form validation (CSRF, file type/size limits)
+
+- **Integration Tests**:
+  - `test_routes.py` - All endpoints (upload, results, download, my-uploads, all-summaries)
+  - `test_error_handlers.py` - Error pages (404, 500, 429)
+
+- **Feature Tests**:
+  - `test_caching.py` - Cache hits/misses, cross-session caching, API call avoidance
+  - `test_session.py` - Session isolation, persistence, multi-user scenarios
+  - `test_cleanup.py` - Date-based deletion, metrics logging, error handling
+  - `test_logging.py` - Log creation, formatting, API logging
+
+- **End-to-End Tests**:
+  - `test_integration.py` - Complete workflows (upload→process→view→download)
+
+#### Running Specific Tests
+
+Run a specific test file:
+```bash
+pytest tests/test_helpers.py
+```
+
+Run a specific test class:
+```bash
+pytest tests/test_routes.py::TestIndexRoute
+```
+
+Run a specific test function:
+```bash
+pytest tests/test_caching.py::TestCachingMechanism::test_cache_hit_avoids_api_call
+```
+
+Run with verbose output:
+```bash
+pytest -v
+```
+
+#### Test Features
+
+- **Isolated Testing**: Each test runs with a fresh SQLite in-memory database
+- **Mock API Calls**: Anthropic API calls are mocked to avoid external dependencies
+- **Dynamic PDF Generation**: Tests generate PDFs on-the-fly using reportlab
+- **Comprehensive Coverage**: Tests cover success paths, error cases, and edge cases
+- **Fast Execution**: In-memory database and mocked APIs ensure quick test runs
 
 ### Code Quality Tools
 
