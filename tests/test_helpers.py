@@ -21,6 +21,7 @@ import pytest
 from werkzeug.datastructures import FileStorage
 
 from pdf_summarizer import main as app_module
+from pdf_summarizer import utils
 
 
 class TestCalculateFileHash:
@@ -31,7 +32,7 @@ class TestCalculateFileHash:
         test_file = tmp_path / "test.pdf"
         test_file.write_bytes(b"test content")
 
-        file_hash = app_module.calculate_file_hash(str(test_file))
+        file_hash = utils.calculate_file_hash(str(test_file))
 
         assert len(file_hash) == 64
         assert all(c in "0123456789abcdef" for c in file_hash)
@@ -41,8 +42,8 @@ class TestCalculateFileHash:
         test_file = tmp_path / "test.pdf"
         test_file.write_bytes(b"test content")
 
-        hash1 = app_module.calculate_file_hash(str(test_file))
-        hash2 = app_module.calculate_file_hash(str(test_file))
+        hash1 = utils.calculate_file_hash(str(test_file))
+        hash2 = utils.calculate_file_hash(str(test_file))
 
         assert hash1 == hash2
 
@@ -53,8 +54,8 @@ class TestCalculateFileHash:
         file1.write_bytes(b"content 1")
         file2.write_bytes(b"content 2")
 
-        hash1 = app_module.calculate_file_hash(str(file1))
-        hash2 = app_module.calculate_file_hash(str(file2))
+        hash1 = utils.calculate_file_hash(str(file1))
+        hash2 = utils.calculate_file_hash(str(file2))
 
         assert hash1 != hash2
 
@@ -64,7 +65,7 @@ class TestCalculateFileHash:
         # Create 1MB file
         test_file.write_bytes(b"x" * (1024 * 1024))
 
-        file_hash = app_module.calculate_file_hash(str(test_file))
+        file_hash = utils.calculate_file_hash(str(test_file))
 
         assert len(file_hash) == 64
 
@@ -116,7 +117,7 @@ class TestExtractTextFromPDF:
             pdf_file = tmp_path / "test.pdf"
             pdf_file.write_bytes(sample_pdf.read())
 
-            text, page_count = app_module.extract_text_from_pdf(str(pdf_file))
+            text, page_count = utils.extract_text_from_pdf(str(pdf_file))
 
             assert isinstance(text, str)
             assert len(text) > 0
@@ -128,7 +129,7 @@ class TestExtractTextFromPDF:
             pdf_file = tmp_path / "multi.pdf"
             pdf_file.write_bytes(multipage_pdf.read())
 
-            text, page_count = app_module.extract_text_from_pdf(str(pdf_file))
+            text, page_count = utils.extract_text_from_pdf(str(pdf_file))
 
             assert isinstance(text, str)
             assert page_count == 3
@@ -140,7 +141,7 @@ class TestExtractTextFromPDF:
             pdf_file.write_bytes(corrupted_pdf.read())
 
             with pytest.raises(Exception) as exc_info:
-                app_module.extract_text_from_pdf(str(pdf_file))
+                utils.extract_text_from_pdf(str(pdf_file))
 
             assert "Error reading PDF" in str(exc_info.value)
 
@@ -192,20 +193,12 @@ class TestSaveUploadedFile:
     def test_creates_secure_filename(self, app, tmp_path, sample_pdf, mocker):
         """Should create secure filename with timestamp."""
         with app.app_context():
-            mocker.patch.object(
-                app_module.app.config,
-                "__getitem__",
-                side_effect=lambda k: (
-                    str(tmp_path) if k == "UPLOAD_FOLDER" else app_module.app.config.data.get(k)
-                ),
-            )
-
             file_storage = FileStorage(
                 stream=sample_pdf, filename="test file.pdf", content_type="application/pdf"
             )
 
-            file_path, unique_filename, original_filename, file_size = (
-                app_module.save_uploaded_file(file_storage)
+            file_path, unique_filename, original_filename, file_size = utils.save_uploaded_file(
+                file_storage, str(tmp_path)
             )
 
             assert original_filename == "test file.pdf"
@@ -221,7 +214,9 @@ class TestSaveUploadedFile:
                 stream=sample_pdf, filename="test.pdf", content_type="application/pdf"
             )
 
-            file_path, _, _, _ = app_module.save_uploaded_file(file_storage)
+            file_path, _, _, _ = utils.save_uploaded_file(
+                file_storage, app_module.app.config["UPLOAD_FOLDER"]
+            )
 
             # File should exist and be in uploads folder
             assert os.path.exists(file_path)
@@ -237,7 +232,9 @@ class TestSaveUploadedFile:
                 content_type="application/pdf",
             )
 
-            _, unique_filename, _, _ = app_module.save_uploaded_file(file_storage)
+            _, unique_filename, _, _ = utils.save_uploaded_file(
+                file_storage, app_module.app.config["UPLOAD_FOLDER"]
+            )
 
             # Filename should be sanitized
             assert "../" not in unique_filename

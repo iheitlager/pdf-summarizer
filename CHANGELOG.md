@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] - 2025-11-16
+
+### Added
+- **Centralized Configuration**: New `config.py` module with all application settings
+- **Command-Line Arguments**: CLI support via argparse for `--host`, `--port`, `--debug`, `--api-key`, `--database`, `--upload-folder`, `--log-level`, and `--retention-days`
+- **Configuration Validation**: Automatic startup validation with clear error messages
+
+### Changed
+- **Configuration Management**: All settings centralized in `Config` class
+- **Default Claude Model**: Updated to `claude-sonnet-4-5-20250929`
+- Refactored `main.py` and `logging_config.py` to use centralized configuration
+- Configuration now supports environment variables and CLI argument overrides
+- Improved error handling for missing required configuration
+
+---
+
 ## [0.2.3] - 2025-11-16
 
 ### Added

@@ -7,9 +7,10 @@ Provides structured logging with rotating file handlers
 """
 
 import logging
-import os
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+
+from .config import Config
 
 
 def setup_logging(app):
@@ -25,11 +26,11 @@ def setup_logging(app):
         app: Flask application instance
     """
     # Create logs directory if it doesn't exist
-    log_dir = Path("logs")
+    log_dir = Path(Config.LOG_DIR)
     log_dir.mkdir(exist_ok=True)
 
-    # Get log level from environment or default to INFO
-    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    # Get log level from configuration
+    log_level = Config.LOG_LEVEL.upper()
     numeric_level = getattr(logging, log_level, logging.INFO)
 
     # Create formatters
@@ -41,21 +42,21 @@ def setup_logging(app):
 
     # Main application log handler
     app_handler = RotatingFileHandler(
-        log_dir / "app.log", maxBytes=10 * 1024 * 1024, backupCount=5  # 10MB
+        log_dir / "app.log", maxBytes=Config.LOG_MAX_BYTES, backupCount=Config.LOG_BACKUP_COUNT
     )
     app_handler.setLevel(numeric_level)
     app_handler.setFormatter(detailed_formatter)
 
     # Error log handler (errors only)
     error_handler = RotatingFileHandler(
-        log_dir / "error.log", maxBytes=10 * 1024 * 1024, backupCount=5  # 10MB
+        log_dir / "error.log", maxBytes=Config.LOG_MAX_BYTES, backupCount=Config.LOG_BACKUP_COUNT
     )
     error_handler.setLevel(logging.ERROR)
     error_handler.setFormatter(detailed_formatter)
 
     # API log handler (for external API calls)
     api_handler = RotatingFileHandler(
-        log_dir / "api.log", maxBytes=10 * 1024 * 1024, backupCount=5  # 10MB
+        log_dir / "api.log", maxBytes=Config.LOG_MAX_BYTES, backupCount=Config.LOG_BACKUP_COUNT
     )
     api_handler.setLevel(logging.INFO)
     api_handler.setFormatter(simple_formatter)

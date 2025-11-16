@@ -8,7 +8,7 @@ MAIN_MODULE := src/pdf_summarizer/main.py
 .PHONY: env install install-dev test help clean run lint format type-check check
 
 
-check:
+check: ## Verify required tooling is available
 	@echo "Checking for required tools..."
 	@command -v uv >/dev/null 2>&1 || { echo >&2 "✗ 'uv' is required but not installed. Please install it from https://github.com/astral-sh/uv"; exit 1; }
 	@uv run ruff --version > /dev/null 2>&1 || { echo >&2 "✗ ruff is not installed"; exit 1; }
@@ -16,18 +16,7 @@ check:
 	@uv run mypy --version > /dev/null 2>&1 || { echo >&2 "✗ mypy is not installed"; exit 1; }
 	@echo "✓ All required tools are installed"
 
-help:
-	@echo "Available targets:"
-	@echo "  make check       - Verify all required tools are installed"
-	@echo "  make env         - Create virtual environment and install all dependencies"
-	@echo "  make run         - Run the application"
-	@echo "  make lint        - Check code with ruff linter"
-	@echo "  make format      - Format code with black and ruff"
-	@echo "  make type-check  - Check types with mypy"
-	@echo "  make test        - Run tests with pytest and generate coverage report"
-	@echo "  make clean       - Remove virtual environment and Python build files"
-
-env:
+env: ## Create and populate the development virtual environment
 	@echo "✓ Setting up development environment with Python $(PYTHON_VERSION)..."
 	uv venv $(VENV) --python $(PYTHON_VERSION) --clear > /dev/null
 	@echo "✓ Virtual environment created at $(VENV)/"
@@ -37,29 +26,29 @@ env:
 	@mkdir -p uploads
 	@echo "To activate: source $(VENV)/bin/activate"
 
-test:
+test: ## Run unit test suite with coverage
 	@echo "Running tests with coverage..."
-	@pytest
+	@pytest -v tests/
 	@echo "✓ Tests completed. Coverage report generated in htmlcov/index.html"
 
-lint:
+lint: ## Lint source and tests with ruff
 	@echo "Linting code with ruff..."
 	uv run ruff check src/ tests/
 	@echo "✓ Linting passed"
 
-format:
+format: ## Format code with black then autofix with ruff
 	@echo "Formatting code with black..."
 	uv run black src/ tests/
 	@echo "Formatting and fixing with ruff..."
 	uv run ruff check --fix src/ tests/
 	@echo "✓ Code formatted"
 
-type-check:
+type-check: ## Run mypy type checks
 	@echo "Type checking with mypy..."
 	uv run mypy src/
 	@echo "✓ Type checking passed"
 
-clean:
+clean: ## Remove virtualenv, artifacts, and caches
 	@echo "Cleaning up..."
 	@rm -rf $(VENV)
 	@rm -rf logs
@@ -73,8 +62,12 @@ clean:
 	@find . -type f -name ".coverage" -delete
 	@echo "✓ Cleaned up successfully"
 
-run:
+run: ## Launch the Flask application via uv
 	@echo "Starting application..."
 	uv run python -m pdf_summarizer.main
 
 .DEFAULT_GOAL := help
+
+help: ## Shows this help screen
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' Makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-16s\033[0m %s\n", $$1, $$2}'
+	@echo ""

@@ -1,8 +1,10 @@
 # PDF Summarizer
 
-**Version**: 0.2.3 | [Changelog](./CHANGELOG.md)
+**Version**: 0.2.4 | [Changelog](./CHANGELOG.md)
 
 A Flask web application that uploads PDF files and generates AI-powered summaries using Anthropic's Claude API.
+
+> **For Developers & AI Assistants**: See [CLAUDE.md](./CLAUDE.md) for development guidelines, testing instructions, code quality standards, and version management rules.
 
 Inspiration from [here](https://medium.com/coding-nexus/the-best-ai-coding-setup-ive-ever-used-54482f9bf080).
 
@@ -32,28 +34,13 @@ Inspiration from [here](https://medium.com/coding-nexus/the-best-ai-coding-setup
 
 1. **Clone or navigate to the project directory**:
    ```bash
-   cd /Users/iheitlager/wc/new
+   cd /path/to/pdf-summarizer
    ```
 
-2. **Set up complete development environment**:
+2. **Set up the environment** (requires [uv](https://github.com/astral-sh/uv)):
    ```bash
    make env
    source .venv/bin/activate
-   ```
-
-   Or individually:
-   ```bash
-   make install           # Install application packages
-   make install-dev       # Install development packages
-   source .venv/bin/activate
-   ```
-
-   Or manually with uv:
-   ```bash
-   uv venv .venv
-   . .venv/bin/activate
-   uv pip install -e .              # Install app packages
-   uv pip install -e ".[dev]"       # Install dev packages
    ```
 
 3. **Set up environment variables**:
@@ -70,14 +57,7 @@ Inspiration from [here](https://medium.com/coding-nexus/the-best-ai-coding-setup
    CLEANUP_HOUR=3
    ```
 
-4. **Initialize the database**:
-   The database will be automatically created when you first run the application.
-   ANTHROPIC_API_KEY=your-anthropic-api-key-here
-   SECRET_KEY=your-secret-key-here
-   LOG_LEVEL=INFO
-   RETENTION_DAYS=30
-   CLEANUP_HOUR=3
-   ```
+or use my [env.sh](https://github.com/iheitlager/dotfiles/blob/main/bin/env.sh) tool to read env vars from the password manager. (Be sure `.env` is in `.gitignore`)
 
 4. **Initialize the database**:
    The database will be automatically created when you first run the application.
@@ -86,28 +66,18 @@ Inspiration from [here](https://medium.com/coding-nexus/the-best-ai-coding-setup
 
 ### Running the Application
 
-1. **Set up the environment** (first time only):
-   ```bash
-   make env
-   ```
-
-2. **Activate the virtual environment**:
+1. **Activate the virtual environment**:
    ```bash
    source .venv/bin/activate
    ```
 
-3. **Run the application**:
+2. **Run the application**:
    ```bash
    make run
    ```
-   
-   Or manually:
-   ```bash
-   python -m pdf_summarizer.main
-   ```
 
-4. **Open your browser**:
-   Navigate to `http://127.0.0.1:5000`
+3. **Open your browser**:
+   Navigate to http://127.0.0.1:5000
 
 ### Using the Application
 
@@ -124,101 +94,55 @@ Inspiration from [here](https://medium.com/coding-nexus/the-best-ai-coding-setup
 ## Project Structure
 ```
 .
-├── src/                            # Main application package
-│   └── pdf_summarizer/             # Application code
-│       ├── __init__.py             # Package initialization
-│       ├── main.py                 # Flask application entry point
-│       ├── logging_config.py       # Structured logging configuration
-│       ├── templates/              # HTML Jinja2 templates
-│       │   ├── base.html           # Base template with common layout
-│       │   ├── index.html          # PDF upload page
-│       │   ├── results.html        # Summary results page
-│       │   └── errors/             # Error page templates
-│       │       ├── 404.html        # Page Not Found
-│       │       ├── 429.html        # Rate Limit Exceeded
-│       │       └── 500.html        # Internal Server Error
-│       ├── static/                 # Static assets
-│       │   ├── css/
-│       │   │   └── style.css       # Custom styles
-│       │   └── js/
-│       │       └── main.js         # Client-side JavaScript
-│       ├── uploads/                # PDF file storage directory
-├── tests/                          # Unit and integration tests
-│   ├── __init__.py                 # Test package initialization
-│   ├── test_*.py                   # Test modules
-├── pyproject.toml                  # Project dependencies and configuration
-├── Makefile                        # Build automation (make env, make test, make clean)
-├── .env.example                    # Environment variables template
-├── .gitignore                      # Git ignore rules
-├── README.md                       # Project documentation
-├── CHANGELOG.md                    # Version history and feature changelog
-```
+├── src/pdf_summarizer/         # Main application code
+│   ├── main.py                 # Flask application entry point
+│   ├── config.py               # Centralized configuration
+│   ├── templates/              # HTML templates
+│   └── static/                 # CSS, JS, assets
+├── tests/                      # Test suite (90%+ coverage)
+├── docs/                       # Documentation
+│   └── database.md             # Database schema reference
+├── pyproject.toml              # Dependencies and config
+├── Makefile                    # Build automation
+├── CLAUDE.md                   # Developer guidelines
+├── CHANGELOG.md                # Version history
+└── README.md                   # This file
 ```
 
-## Database Schema
+## Technical Details
 
-### Upload Table
-- `id`: Primary key
-- `filename`: Secure filename on disk
-- `original_filename`: Original uploaded filename
-- `file_path`: Full path to stored file
-- `upload_date`: Timestamp of upload
-- `file_size`: Size in bytes
+> **Database Schema**: See [docs/database.md](./docs/database.md) for complete database schema documentation, including tables, relationships, indexes, and query examples.
 
-### Summary Table
-- `id`: Primary key
-- `upload_id`: Foreign key to Upload
-- `summary_text`: Generated summary
-- `created_date`: Timestamp of summary creation
-- `page_count`: Number of pages in PDF
-- `char_count`: Character count of extracted text
+### API Configuration
+- **Model**: Claude 3.5 Sonnet (`claude-3-5-sonnet-20241022`)
+- **Max tokens**: 1024
+- **Input limit**: ~100,000 characters per PDF
 
-## API Usage
+### Database
+- **Engine**: SQLite (configurable via `DATABASE_URL`)
+- **ORM**: Flask-SQLAlchemy
+- **Tables**: `upload` (file metadata), `summary` (AI summaries)
+- **Features**: Session tracking, SHA256 caching, cascade deletion
 
-The application uses the Anthropic Claude API with the following configuration:
-- Model: `claude-3-5-sonnet-20241022`
-- Max tokens: 1024
-- Input limit: ~100,000 characters per PDF
+### Caching System
+SHA256 hash-based deduplication for **60% potential cost reduction**:
+- Automatic cache lookup before API calls
+- Cache status displayed in UI
+- Cross-session caching support
 
-## Caching System
+### Session & Rate Limiting
+- **Sessions**: 30-day lifetime with UUID tracking
+- **Rate limits**: 10 uploads/hour, 200 requests/day
+- Custom error pages for rate limit exceeded
 
-The application prevents re-processing of identical PDFs using SHA256 hash-based deduplication:
-- Automatic cache lookup before Claude API calls
-- **60% potential cost reduction** for duplicate PDFs
-- Cache status displayed in UI with badge indicators
-- Cache hits logged for monitoring
-
-## Session Management
-
-Personalized experience with persistent user sessions:
-- 30-day session lifetime with UUID-based tracking
-- "My Uploads" page at `/my-uploads` shows user's own uploads
-- Homepage displays only current session's recent uploads
-- Automatic session creation and logging
-
-## Rate Limiting
-
-Abuse prevention through Flask-Limiter:
-- 10 PDF uploads per hour limit
-- 200 total requests per day limit
-- Custom 429 (Rate Limit Exceeded) error page
-- Configurable storage backend (memory/Redis)
-
-## Logging System
-
+### Logging
 Structured logging with rotating file handlers:
-- `logs/app.log` - General application logs (INFO and above)
-- `logs/error.log` - Error-level logs only
-- `logs/api.log` - External API calls to Claude
-- Configurable via `LOG_LEVEL` environment variable (default: INFO)
+- `logs/app.log` - General application logs
+- `logs/error.log` - Error-level logs
+- `logs/api.log` - Claude API calls
 
-## Automated Cleanup
-
-Daily background job to maintain database:
-- Default cleanup time: 3 AM (configurable via `CLEANUP_HOUR`)
-- Automatic deletion of uploads older than retention period (default: 30 days via `RETENTION_DAYS`)
-- File system and database cleanup with metrics logging
-- Graceful scheduler shutdown handling
+### Automated Cleanup
+Daily background job (default 3 AM) to delete uploads older than retention period (default 30 days)
 
 ## Security Features
 
@@ -232,138 +156,41 @@ Daily background job to maintain database:
 
 ## Development
 
-To run in development mode with debug enabled:
+### Quick Start
 
 ```bash
-export FLASK_ENV=development
-python main.py
+make help        # Show all available commands
+make test        # Run test suite with coverage
+make lint        # Check code quality
+make format      # Format code
 ```
 
 ### Testing
 
-The project includes a comprehensive test suite with 90%+ code coverage targeting all application components.
-
-#### Running Tests
-
-Run the complete test suite with coverage:
+The project includes a comprehensive test suite with 90%+ code coverage. Run tests with:
 
 ```bash
 make test
 ```
 
-Or manually:
-```bash
-pytest
-```
+For detailed testing instructions, test structure, and coverage reports, see [CLAUDE.md](./CLAUDE.md#testing-guidelines).
 
-#### Coverage Reports
+### Code Quality
 
-View coverage in the terminal:
-```bash
-pytest --cov=. --cov-report=term-missing
-```
-
-Generate and view HTML coverage report:
-```bash
-pytest --cov=. --cov-report=html
-open htmlcov/index.html
-```
-
-#### Test Structure
-
-The test suite includes 13 comprehensive test modules:
-
-- **`tests/conftest.py`** - Core fixtures and test configuration (20+ fixtures)
-  - Mock Anthropic API responses
-  - PDF generators (sample, multi-page, empty, corrupted, large)
-  - Database fixtures with auto-reset
-  - Temporary directories and mock loggers
-
-- **Unit Tests**:
-  - `test_helpers.py` - All helper functions (hashing, caching, extraction, summarization, file handling, cleanup, sessions)
-  - `test_models.py` - Database models (creation, relationships, queries, cascade deletion)
-  - `test_forms.py` - Form validation (CSRF, file type/size limits)
-
-- **Integration Tests**:
-  - `test_routes.py` - All endpoints (upload, results, download, my-uploads, all-summaries)
-  - `test_error_handlers.py` - Error pages (404, 500, 429)
-
-- **Feature Tests**:
-  - `test_caching.py` - Cache hits/misses, cross-session caching, API call avoidance
-  - `test_session.py` - Session isolation, persistence, multi-user scenarios
-  - `test_cleanup.py` - Date-based deletion, metrics logging, error handling
-  - `test_logging.py` - Log creation, formatting, API logging
-
-- **End-to-End Tests**:
-  - `test_integration.py` - Complete workflows (upload→process→view→download)
-
-#### Running Specific Tests
-
-Run a specific test file:
-```bash
-pytest tests/test_helpers.py
-```
-
-Run a specific test class:
-```bash
-pytest tests/test_routes.py::TestIndexRoute
-```
-
-Run a specific test function:
-```bash
-pytest tests/test_caching.py::TestCachingMechanism::test_cache_hit_avoids_api_call
-```
-
-Run with verbose output:
-```bash
-pytest -v
-```
-
-#### Test Features
-
-- **Isolated Testing**: Each test runs with a fresh SQLite in-memory database
-- **Mock API Calls**: Anthropic API calls are mocked to avoid external dependencies
-- **Dynamic PDF Generation**: Tests generate PDFs on-the-fly using reportlab
-- **Comprehensive Coverage**: Tests cover success paths, error cases, and edge cases
-- **Fast Execution**: In-memory database and mocked APIs ensure quick test runs
-
-### Code Quality Tools
-
-Format and lint code with Ruff and Black:
+Format and lint code:
 
 ```bash
-# Format code
-black .
-
-# Lint code
-ruff check .
-
-# Fix linting issues automatically
-ruff check --fix .
-
-# Type check with MyPy
-mypy .
+make format      # Format with black and ruff
+make lint        # Check with ruff
+make type-check  # Type check with mypy
 ```
 
-## Database Migrations (Optional)
-
-If you need to modify the database schema:
-
-```bash
-# Initialize migrations
-flask db init
-
-# Create a migration
-flask db migrate -m "Description of changes"
-
-# Apply migrations
-flask db upgrade
-```
+For detailed code quality standards and development workflow, see [CLAUDE.md](./CLAUDE.md).
 
 ## Troubleshooting
 
 **Issue**: "No module named flask"
-- **Solution**: Install dependencies with `pip install -e .`
+- **Solution**: Run `make env` to set up the environment
 
 **Issue**: "anthropic.APIError: Invalid API key"
 - **Solution**: Verify your ANTHROPIC_API_KEY in the .env file
@@ -373,6 +200,9 @@ flask db upgrade
 
 **Issue**: Database errors
 - **Solution**: Delete `pdf_summaries.db` and restart the app to recreate it
+
+**Issue**: Command not found errors
+- **Solution**: Activate the virtual environment with `source .venv/bin/activate`
 
 ## License
 

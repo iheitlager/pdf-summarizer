@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import atexit
-import hashlib
 import io
 import os
+import sys
 import time
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -29,10 +29,11 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
-from pypdf import PdfReader
-from werkzeug.utils import secure_filename
 from wtforms import SubmitField
 from wtforms.validators import ValidationError
+
+# Import config module
+from .config import Config
 
 # Import logging configuration
 from .logging_config import (
@@ -47,20 +48,25 @@ from .logging_config import (
     setup_logging,
 )
 
+# Import utility functions
+from .utils import calculate_file_hash, extract_text_from_pdf, save_uploaded_file
+
 # Load environment variables
 load_dotenv()
 
+# Load configuration from CLI args and ensure directories exist
+# Only parse CLI args if running directly (not in tests)
+if not any("pytest" in arg or "conftest" in arg for arg in sys.argv):
+    try:
+        Config.from_cli_args()
+    except SystemExit:
+        # Silently handle argparse system exit during import
+        pass
+Config.ensure_directories()
+
 # Initialize Flask app
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///pdf_summaries.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10MB max file size
-app.config["UPLOAD_FOLDER"] = "uploads"
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
-
-# Ensure upload folder exists
-os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+app.config.from_object(Config)
 
 # Initialize extensions
 db = SQLAlchemy(app)
@@ -71,11 +77,11 @@ limiter = Limiter(
     app=app,
     key_func=get_remote_address,
     default_limits=["200 per day", "50 per hour"],
-    storage_uri="memory://",  # Use Redis in production: os.getenv('REDIS_URL', 'redis://localhost:6379')
+    storage_uri=Config.RATE_LIMIT_STORAGE_URI,
 )
 
 # Initialize Anthropic client
-anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+anthropic_client = Anthropic(api_key=Config.ANTHROPIC_API_KEY)
 
 # Setup logging
 api_logger = setup_logging(app)
@@ -144,16 +150,6 @@ def get_or_create_session_id():
     return session["session_id"]
 
 
-def calculate_file_hash(file_path):
-    """Calculate SHA256 hash of a file"""
-    sha256_hash = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        # Read file in chunks to handle large files
-        for byte_block in iter(lambda: f.read(4096), b""):
-            sha256_hash.update(byte_block)
-    return sha256_hash.hexdigest()
-
-
 def check_cache(file_hash):
     """Check if a file with this hash has been processed before"""
     cached_upload = Upload.query.filter_by(file_hash=file_hash).first()
@@ -162,22 +158,9 @@ def check_cache(file_hash):
     return None
 
 
-def extract_text_from_pdf(file_path):
-    """Extract text from PDF file using pypdf"""
-    try:
-        reader = PdfReader(file_path)
-        text = ""
-        for page in reader.pages:
-            text += page.extract_text() + "\n"
-        return text, len(reader.pages)
-    except Exception as e:
-        app.logger.error(f"PDF extraction failed for {file_path}: {str(e)}")
-        raise Exception(f"Error reading PDF: {str(e)}") from e
-
-
 def validate_claude_model():
     """Validate that the configured Claude model is available"""
-    model = os.getenv("CLAUDE_MODEL", "claude-3-5-sonnet-20241022")
+    model = Config.CLAUDE_MODEL
     try:
         # Make a minimal test call to validate the model exists
         anthropic_client.messages.create(
@@ -205,14 +188,14 @@ def summarize_with_claude(text):
     start_time = time.time()
     try:
         # Use Claude model (configurable via environment variable)
-        model = os.getenv("CLAUDE_MODEL", "claude-3-5-sonnet-20241022")
+        model = Config.CLAUDE_MODEL
         message = anthropic_client.messages.create(
             model=model,
-            max_tokens=1024,
+            max_tokens=Config.MAX_TOKENS,
             messages=[
                 {
                     "role": "user",
-                    "content": f"Please provide a concise summary of the following document. Focus on the main points, key findings, and important details:\n\n{text[:100000]}",  # Limit to ~100k chars to avoid token limits
+                    "content": f"Please provide a concise summary of the following document. Focus on the main points, key findings, and important details:\n\n{text[:Config.MAX_TEXT_LENGTH]}",
                 }
             ],
         )
@@ -230,29 +213,11 @@ def summarize_with_claude(text):
         raise Exception(f"Error with Claude API: {str(e)}") from e
 
 
-def save_uploaded_file(file):
-    """Save uploaded file with secure filename"""
-    original_filename = file.filename
-    filename = secure_filename(original_filename)
-
-    # Add timestamp to avoid filename collisions
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    name, ext = os.path.splitext(filename)
-    unique_filename = f"{name}_{timestamp}{ext}"
-
-    file_path = os.path.join(app.config["UPLOAD_FOLDER"], unique_filename)
-    file.save(file_path)
-
-    # Get file size
-    file_size = os.path.getsize(file_path)
-
-    return file_path, unique_filename, original_filename, file_size
-
-
 def cleanup_old_uploads():
     """Delete uploads older than retention period"""
     try:
-        retention_days = int(os.getenv("RETENTION_DAYS", "30"))
+        # Read RETENTION_DAYS from environment for test compatibility
+        retention_days = int(os.getenv("RETENTION_DAYS", Config.RETENTION_DAYS))
         cutoff_date = datetime.now(UTC) - timedelta(days=retention_days)
 
         old_uploads = Upload.query.filter(Upload.upload_date < cutoff_date).all()
@@ -330,7 +295,9 @@ def index():
                     continue
 
                 # Save the file
-                file_path, unique_filename, original_filename, file_size = save_uploaded_file(file)
+                file_path, unique_filename, original_filename, file_size = save_uploaded_file(
+                    file, app.config["UPLOAD_FOLDER"]
+                )
                 log_upload(app.logger, original_filename, file_size, session_id)
 
                 # Calculate file hash for caching
@@ -384,7 +351,7 @@ def index():
                     db.session.flush()  # Get the ID without committing
 
                     # Extract text from PDF
-                    text, page_count = extract_text_from_pdf(file_path)
+                    text, page_count = extract_text_from_pdf(file_path, app.logger)
 
                     # Generate summary with Claude
                     summary_text = summarize_with_claude(text)
@@ -518,7 +485,7 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(
     func=cleanup_old_uploads,
     trigger="cron",
-    hour=int(os.getenv("CLEANUP_HOUR", "3")),  # Default: 3 AM
+    hour=Config.CLEANUP_HOUR,
     minute=0,
 )
 scheduler.start()
@@ -540,4 +507,13 @@ atexit.register(lambda: scheduler.shutdown())
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Validate configuration
+    errors = Config.validate()
+    if errors:
+        print("Configuration errors:")
+        for error in errors:
+            print(f"  - {error}")
+        exit(1)
+
+    # Run the application
+    app.run(host=Config.HOST, port=Config.PORT, debug=Config.DEBUG)
