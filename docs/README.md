@@ -16,6 +16,15 @@ Complete database schema reference including:
 - Performance considerations
 - Backup and recovery procedures
 
+### [Architecture Decision Records (ADRs)](./adr/)
+Documents significant architectural and design decisions:
+- Technology choices (Flask, SQLite, uv, Claude API)
+- Design patterns (monolithic architecture, caching, sessions)
+- Infrastructure decisions (APScheduler, rate limiting, logging)
+- Testing and quality strategies
+- **[ADR Recommendations](./ADR_RECOMMENDATIONS.md)** - Full analysis of current architecture with validation results
+- **[ADR Index](./adr/README.md)** - List of all ADRs with status and dates
+
 ## Quick Links
 
 - **User Guide**: See main [README.md](../README.md)
