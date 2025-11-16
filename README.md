@@ -6,8 +6,7 @@ A Flask web application that uploads PDF files and generates AI-powered summarie
 
 > **For Developers & AI Assistants**: See [CLAUDE.md](./CLAUDE.md) for development guidelines, testing instructions, code quality standards, and version management rules.
 
-Inspiration from [here](https://medium.com/coding-nexus/the-best-ai-coding-setup-ive-ever-used-54482f9bf080).
-
+Inspiration from [here](https://medium.com/coding-nexus/the-best-ai-coding-setup-ive-ever-used-54482f9bf080). I was reading this article about the interaction between Claude Code and Codex. I used basically four tools: Claude code, vscode Chat with Codes, Cline with Sonnet and inline vscode with Haiku.
 
 
 ## Features

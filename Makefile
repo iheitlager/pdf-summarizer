@@ -7,6 +7,8 @@ MAIN_MODULE := src/pdf_summarizer/main.py
 
 .PHONY: env install install-dev test help clean run lint format type-check check
 
+version: ## Show project version
+	@uv run python -c "import pdf_summarizer; print(f'pdf_summarizer version: {pdf_summarizer.__version__}')"
 
 check: ## Verify required tooling is available
 	@echo "Checking for required tools..."

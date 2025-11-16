@@ -463,12 +463,16 @@ scheduler.start()
 # Create database tables
 with app.app_context():
     db.create_all()
-    # Validate Claude model availability
-    if not validate_claude_model():
-        app.logger.critical("Claude model validation failed - aborting application startup")
-        raise RuntimeError(
-            "Claude model is not available. Check CLAUDE_MODEL environment variable and API key"
-        )
+    # Validate Claude model availability unless explicitly skipped
+    skip_validation = os.getenv("SKIP_CLAUDE_VALIDATION", "false").lower() == "true"
+    if skip_validation:
+        app.logger.info("Skipping Claude model validation (SKIP_CLAUDE_VALIDATION=true)")
+    else:
+        if not validate_claude_model():
+            app.logger.critical("Claude model validation failed - aborting application startup")
+            raise RuntimeError(
+                "Claude model is not available. Check CLAUDE_MODEL environment variable and API key"
+            )
 
 
 # Shutdown scheduler on app exit

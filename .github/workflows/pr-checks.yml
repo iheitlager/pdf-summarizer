@@ -1,6 +1,9 @@
 name: PR Checks
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
@@ -9,6 +12,9 @@ jobs:
   test:
     name: Run Tests and Coverage
     runs-on: ubuntu-latest
+    env:
+      SKIP_CLAUDE_VALIDATION: "true"
+      ANTHROPIC_API_KEY: ""
 
     steps:
       - name: Checkout repository
@@ -17,11 +23,14 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v3
 
-      - name: Install Python 3.13
-        run: uv python install 3.13
+      - name: Create virtual environment
+        run: uv venv .venv --python 3.13 --seed
 
-      - name: Install dependencies
-        run: uv sync --dev
+      - name: Install production dependencies
+        run: uv pip install --python .venv/bin/python -e .
+
+      - name: Install development dependencies
+        run: uv pip install --python .venv/bin/python -e ".[dev]"
 
       - name: Run tests with coverage
         run: uv run pytest --cov=src/pdf_summarizer --cov-report=term --cov-report=xml
