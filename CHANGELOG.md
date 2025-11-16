@@ -5,270 +5,72 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2025-11-16
+
+### Added
+- **Apache 2.0 License**: Full LICENSE file with Apache License 2.0 text
+- **Copyright Headers**: Added copyright and SPDX license identifiers to all Python source files
+
+### Changed
+- **Dynamic Versioning**: Version now read from `src/pdf_summarizer/__init__.py` using Hatchling's dynamic version support
+
+---
+
 ## [0.2.2] - 2025-11-16
 
 ### Added
-
-#### Comprehensive Test Suite
-- **Test Infrastructure**: Complete pytest-based test suite with 90%+ code coverage target
-- **Test Files**: 13 comprehensive test modules covering all application components:
-  - `tests/conftest.py` - Core fixtures and test configuration (20+ fixtures)
-  - `tests/test_helpers.py` - Unit tests for all helper functions (7 test classes)
-  - `tests/test_models.py` - Database model tests (4 test classes)
-  - `tests/test_forms.py` - Form validation tests
-  - `tests/test_routes.py` - Route integration tests (5 test classes)
-  - `tests/test_error_handlers.py` - Error handler tests
-  - `tests/test_caching.py` - Caching mechanism tests
-  - `tests/test_cleanup.py` - Cleanup job tests
-  - `tests/test_session.py` - Session management tests
-  - `tests/test_logging.py` - Logging functionality tests
-  - `tests/test_integration.py` - End-to-end workflow tests (3 test classes)
-
-#### Test Fixtures and Utilities
-- **Mock Anthropic API**: Automated mocking for Claude API calls in all tests
-- **PDF Generators**: Dynamic PDF creation using reportlab for test data:
-  - Sample single-page PDFs
-  - Multi-page PDFs (3 pages)
-  - Empty PDFs
-  - Corrupted PDFs
-  - Large PDFs (1MB+)
-- **Database Fixtures**: Auto-reset SQLite in-memory database between tests
-- **Mock Loggers**: Capture and verify logging output in tests
-- **Temporary Directories**: Isolated file storage for each test
-
-#### Test Coverage Areas
-- **Unit Tests**: All helper functions (hashing, caching, extraction, summarization, file handling, cleanup, sessions)
-- **Integration Tests**: Complete upload→process→view→download workflows
-- **Database Tests**: Model creation, relationships, queries, cascade deletion
-- **Form Tests**: Validation, CSRF protection, file type/size limits
-- **Route Tests**: All endpoints with various scenarios (success, errors, edge cases)
-- **Error Handling**: 404, 500, 429 error handlers with proper logging
-- **Caching Tests**: Cache hits/misses, cross-session caching, API call avoidance
-- **Session Tests**: Isolation, persistence, multi-user scenarios
-- **Cleanup Tests**: Date-based deletion, metrics logging, error handling
-- **Logging Tests**: Log creation, formatting, API logging, cache event logging
-
-### Dependencies
-- Added `pytest>=8.0.0` for test framework
-- Added `pytest-flask>=1.3.0` for Flask test integration
-- Added `pytest-cov>=4.1.0` for coverage reporting
-- Added `pytest-mock>=3.12.0` for advanced mocking
-- Added `reportlab>=4.0.0` for dynamic PDF generation in tests
-
-### Configuration
-- Updated `pyproject.toml` with pytest configuration:
-  - Test discovery patterns
-  - Coverage reporting (terminal + HTML)
-  - Coverage thresholds and exclusions
-- Configured coverage to exclude tests/, venv/, and third-party code
-
-### Documentation
-- Added test suite documentation to README.md
-- Documented test execution commands
-- Added coverage reporting instructions
+- **Comprehensive test suite** with 90%+ code coverage
+  - 13 test modules covering all components
+  - 20+ pytest fixtures for mocking, databases, PDFs, and logging
+  - Mock Anthropic API and dynamic PDF generation
+  - Unit, integration, and end-to-end tests
+- **Test dependencies**: pytest, pytest-flask, pytest-cov, pytest-mock, reportlab
+- **Documentation**: Test execution and coverage reporting in README
 
 ---
 
 ## [0.2.1] - 2025-11-16
 
 ### Added
-- **Makefile**: Build automation for environment setup and testing
-  - `make env` - Create and set up complete development environment
-  - `make install` / `make install-dev` - Separate installation steps
-  - `make test` - Run tests with pytest and coverage
-  - `make clean` - Clean up virtual environment and build files
+- **Makefile** with automation targets: `make env`, `make test`, `make clean`, etc.
 
 ### Changed
-- **Project Structure**: Reorganized as proper Python package
-  - Moved application code to `src/pdf_summarizer/` directory
-  - Created `__init__.py` for package initialization
-  - Improved organization: templates, static, and uploads now in package directory
-  
-- **Build System**: Updated to use Hatchling properly
-  - Configured `pyproject.toml` with correct package detection
-  - Uses optional dependencies for dev tools instead of dependency groups
-  - Supports proper editable installs with `-e .` and `-e ".[dev]"`
-
-- **Development Workflow**:
-  - `.venv` as standard virtual environment directory
-  - Simplified installation: single `make env` command for full setup
-  - Dependencies managed exclusively in `pyproject.toml`
+- **Project structure**: Reorganized as proper Python package under `src/pdf_summarizer/`
+- **Build system**: Updated to use Hatchling with `pyproject.toml`
+- **Development workflow**: Simplified with single `make env` command for full setup
 
 ---
 
 ## [0.2.0] - 2025-11-16
 
 ### Added
-
-#### Summary Caching System
-- SHA256 hash-based file deduplication to prevent re-processing identical PDFs
-- `file_hash` column in Upload model (unique, indexed)
-- `is_cached` boolean flag to track cache hits
-- Automatic cache lookup before processing
-- UI badge indicator showing cached summaries
-- Cache hit/miss logging for monitoring
-- Significant cost savings by avoiding duplicate Claude API calls
-
-#### Session Management
-- Persistent user sessions with 30-day lifetime
-- UUID-based session tracking
-- `session_id` column in Upload model (indexed)
-- Session-specific upload filtering
-- New "My Uploads" page at `/my-uploads` route
-- Session creation logging
-- Homepage now shows only current user's recent uploads
-
-#### Rate Limiting
-- Flask-Limiter integration for abuse prevention
-- Per-endpoint rate limits (10 uploads/hour, 200 requests/day)
-- Custom 429 (Rate Limit Exceeded) error page
-- Rate limit violation logging
-- Configurable storage backend (memory/Redis)
-- User-friendly rate limit information display
-
-#### Comprehensive Logging System
-- New `logging_config.py` module with structured logging
-- Three separate rotating log files:
-  - `logs/app.log` - General application logs (INFO and above)
-  - `logs/error.log` - Error-level logs only
-  - `logs/api.log` - External API calls (Claude)
-- Rotating file handlers (10MB max, 5 backups)
-- Configurable log levels via `LOG_LEVEL` environment variable
-- Context-aware error logging
-- Startup, upload, processing, API call, cache, and cleanup logging
-- Dedicated API logger for external service monitoring
-
-#### Automated Cleanup Job
-- APScheduler-based background task scheduler
-- Daily cleanup job (default: 3 AM, configurable)
-- Automatic deletion of uploads older than retention period
-- Configurable retention period via `RETENTION_DAYS` (default: 30 days)
-- Both file system and database cleanup
-- Cleanup operation logging with metrics (files deleted, space freed)
-- Graceful scheduler shutdown handling
-
-#### Error Handling
-- Custom error page templates:
-  - `templates/errors/404.html` - Page Not Found
-  - `templates/errors/500.html` - Internal Server Error
-  - `templates/errors/429.html` - Rate Limit Exceeded
-- User-friendly error messages with actionable guidance
-- Error logging with full context and stack traces
-- Database rollback on errors
+- **Summary Caching**: SHA256 hash-based deduplication (60% potential cost reduction)
+- **Session Management**: Persistent 30-day sessions with UUID tracking and "My Uploads" page
+- **Rate Limiting**: Flask-Limiter with configurable limits (10 uploads/hour, 200 requests/day)
+- **Comprehensive Logging**: Rotating file handlers for app, error, and API logs
+- **Automated Cleanup**: APScheduler background job for daily upload pruning
+- **Error Handling**: Custom 404, 500, and 429 error pages
+- **Dependencies**: Added flask-limiter, apscheduler
+- **Configuration**: LOG_LEVEL, RETENTION_DAYS, CLEANUP_HOUR environment variables
 
 ### Changed
-- Updated Upload model with new fields: `file_hash`, `session_id`, `is_cached`
-- Enhanced upload flow with cache checking before processing
-- Modified results template to show cached badge and dynamic titles
-- Updated navigation bar to include "My Uploads" link
-- Improved error handling throughout application
-- Enhanced download functionality to indicate cached summaries
-
-### Dependencies
-- Added `flask-limiter>=3.5.0` for rate limiting
-- Added `apscheduler>=3.10.0` for scheduled tasks
-
-### Configuration
-- Added `LOG_LEVEL` environment variable (default: INFO)
-- Added `RETENTION_DAYS` environment variable (default: 30)
-- Added `CLEANUP_HOUR` environment variable (default: 3)
-- Added `REDIS_URL` environment variable (optional, for production)
-
-### Infrastructure
-- Created `logs/` directory for application logs
-- Updated `.gitignore` to exclude log files
-- Added logs directory to project structure
-
-### Documentation
-- Comprehensive README.md updates with new features
-- Added Logging, Caching, Cleanup Job, and Configuration sections
-- Updated Database Schema documentation
-- Enhanced Security Features section
-- Updated Project Structure diagram
+- **Upload model**: Added `file_hash`, `session_id`, `is_cached` fields
+- **Upload flow**: Cache checking before processing
+- **Navigation**: Added "My Uploads" and "All Summaries" links
 
 ---
 
 ## [0.1.0] - 2025-11-16
 
 ### Added
-
-#### Core PDF Processing
-- Multi-file PDF upload support with drag-and-drop interface
-- PDF text extraction using pypdf library
-- AI-powered summarization using Anthropic Claude 3.5 Sonnet
-- Support for PDFs up to 10MB per file
-- Handles documents up to ~100,000 characters
-
-#### Database & Storage
-- SQLite database with SQLAlchemy ORM
-- Upload model to track uploaded files
-- Summary model to store generated summaries
-- Persistent file storage in `uploads/` directory
-- Database migrations support via Flask-Migrate
-
-#### User Interface
-- Modern, responsive Bootstrap 5 design
-- Drag-and-drop file upload area
-- File selection with visual feedback
-- Real-time file list display with size information
-- Results page with summary display
-- Download summaries as formatted text files
-- Copy to clipboard functionality
-- Recent uploads list on homepage
-- All summaries archive page
-
-#### Security Features
-- CSRF protection via Flask-WTF
-- Secure filename handling with werkzeug.utils.secure_filename
-- File type validation (PDF only)
-- File size validation (10MB limit)
-- Timestamp-based unique filenames to prevent collisions
-- Environment variable configuration for sensitive data
-
-#### Form Handling
-- Flask-WTF forms with validators
-- FileRequired and FileAllowed validators
-- Custom file size validation
-- Multiple file upload support
-- User-friendly validation error messages
-
-#### API Integration
-- Anthropic Claude API integration
-- claude-3-5-sonnet-20241022 model
-- Configurable max tokens (1024)
-- Environment-based API key configuration
-- Automatic text truncation for API limits
-
-#### Templates & Static Files
-- Base template with navigation and footer
-- Index page with upload form
-- Results page with summary cards
-- Custom CSS styling
-- JavaScript for drag-and-drop and file validation
-- Bootstrap Icons integration
-
-### Dependencies
-- `flask>=3.0.0` - Web framework
-- `flask-sqlalchemy>=3.1.0` - Database ORM
-- `flask-migrate>=4.0.0` - Database migrations
-- `flask-wtf>=1.2.0` - Form handling and CSRF
-- `anthropic>=0.40.0` - Claude API client
-- `pypdf>=5.1.0` - PDF text extraction
-- `python-dotenv>=1.0.0` - Environment variable management
-
-### Configuration
-- `SECRET_KEY` - Flask secret key for sessions and CSRF
-- `ANTHROPIC_API_KEY` - Anthropic API authentication
-- `FLASK_ENV` - Environment mode (development/production)
-- SQLite database at `pdf_summaries.db`
-- 10MB maximum file upload size
-
-### Infrastructure
-- Project structure with templates, static files, and uploads directories
-- `.gitignore` for Python, Flask, and project-specific files
-- `.env.example` template for environment variables
-- `README.md` with installation and usage instructions
-- Python 3.13+ requirement
+- **Core Features**: Multi-file PDF upload, text extraction, AI summarization
+- **Database**: SQLAlchemy ORM with Upload/Summary models, SQLite backend
+- **UI**: Responsive Bootstrap 5 design with drag-and-drop upload
+- **Security**: CSRF protection, secure filename handling, file validation
+- **Forms**: Flask-WTF with custom validation
+- **API**: Anthropic Claude integration (claude-3-5-sonnet-20241022)
+- **Dependencies**: flask, flask-sqlalchemy, flask-migrate, flask-wtf, anthropic, pypdf, python-dotenv
+- **Configuration**: Environment variables for SECRET_KEY, ANTHROPIC_API_KEY, FLASK_ENV
 
 ---
 

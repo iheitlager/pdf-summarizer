@@ -1,3 +1,6 @@
+# Copyright 2025 Ilja Heitlager
+# SPDX-License-Identifier: Apache-2.0
+
 """
 Tests for caching mechanism and cache-related functionality.
 """

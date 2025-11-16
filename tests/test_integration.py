@@ -1,3 +1,6 @@
+# Copyright 2025 Ilja Heitlager
+# SPDX-License-Identifier: Apache-2.0
+
 """
 End-to-end integration tests for complete workflows.
 

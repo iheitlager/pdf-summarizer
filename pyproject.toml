@@ -1,6 +1,6 @@
 [project]
 name = "pdf-summarizer"
-version = "0.2.2"
+dynamic = ["version"]
 description = "Flask PDF Summarizer with AI-powered summaries, caching, session management, and automated cleanup"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -34,6 +34,9 @@ pdf-summarizer = "pdf_summarizer.main:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/pdf_summarizer/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pdf_summarizer"]

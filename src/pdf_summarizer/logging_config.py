@@ -1,3 +1,6 @@
+# Copyright 2025 Ilja Heitlager
+# SPDX-License-Identifier: Apache-2.0
+
 """
 Logging configuration for PDF Summarizer application
 Provides structured logging with rotating file handlers

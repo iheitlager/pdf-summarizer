@@ -1,3 +1,8 @@
+/*
+ * Copyright 2025 Ilja Heitlager
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 // Main JavaScript for PDF Summarizer
 
 document.addEventListener('DOMContentLoaded', function() {

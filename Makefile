@@ -1,3 +1,6 @@
+# Copyright 2025 Ilja Heitlager
+# SPDX-License-Identifier: Apache-2.0
+
 VENV := .venv
 PYTHON_VERSION := 3.13
 MAIN_MODULE := src/pdf_summarizer/main.py
@@ -59,7 +62,6 @@ type-check:
 clean:
 	@echo "Cleaning up..."
 	@rm -rf $(VENV)
-	@rm -rf .env
 	@rm -rf logs
 	@rm -rf uploads/
 	@find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
