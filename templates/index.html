@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Upload PDFs - PDF Summarizer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <!-- Main Upload Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-cloud-upload"></i> Upload PDF Documents
+                </h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Upload one or more PDF files to generate AI-powered summaries using Claude.
+                    Maximum file size: 10MB per file.
+                </p>
+
+                <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                    {{ form.hidden_tag() }}
+
+                    <!-- File Upload Area -->
+                    <div class="mb-3">
+                        <label for="pdf_files" class="form-label fw-bold">Select PDF Files</label>
+                        <div class="upload-area border border-2 border-dashed rounded p-4 text-center" id="uploadArea">
+                            <i class="bi bi-file-earmark-pdf display-4 text-primary mb-3 d-block"></i>
+                            <p class="mb-2">
+                                <strong>Drag and drop PDF files here</strong>
+                            </p>
+                            <p class="text-muted mb-3">or</p>
+                            {{ form.pdf_files(class="form-control", id="pdf_files", accept=".pdf", multiple=true) }}
+                        </div>
+
+                        <!-- Selected Files Display -->
+                        <div id="fileList" class="mt-3"></div>
+
+                        {% if form.pdf_files.errors %}
+                            <div class="text-danger mt-2">
+                                {% for error in form.pdf_files.errors %}
+                                    <small>{{ error }}</small><br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary btn-lg") }}
+                    </div>
+                </form>
+
+                <!-- Info Alert -->
+                <div class="alert alert-info mt-4 mb-0" role="alert">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>How it works:</strong>
+                    <ol class="mb-0 mt-2">
+                        <li>Upload one or more PDF files (max 10MB each)</li>
+                        <li>Text is extracted from each PDF</li>
+                        <li>Claude AI generates a concise summary</li>
+                        <li>View and download your summaries</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Uploads -->
+        {% if recent_uploads %}
+        <div class="card shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history"></i> Recent Uploads
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for upload in recent_uploads %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi bi-file-earmark-pdf text-danger"></i>
+                            <strong>{{ upload.original_filename }}</strong>
+                            <br>
+                            <small class="text-muted">
+                                <i class="bi bi-calendar"></i> {{ upload.upload_date.strftime('%Y-%m-%d %H:%M') }}
+                                {% if upload.summaries %}
+                                    | <i class="bi bi-file-text"></i> {{ upload.summaries[0].page_count }} pages
+                                {% endif %}
+                            </small>
+                        </div>
+                        {% if upload.summaries %}
+                        <a href="{{ url_for('results', ids=upload.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // File upload area interactions
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('pdf_files');
+    const fileList = document.getElementById('fileList');
+
+    // Prevent default drag behaviors
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // Highlight drop area when dragging over it
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight(e) {
+        uploadArea.classList.add('border-primary', 'bg-light');
+    }
+
+    function unhighlight(e) {
+        uploadArea.classList.remove('border-primary', 'bg-light');
+    }
+
+    // Handle dropped files
+    uploadArea.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        fileInput.files = files;
+        displayFiles(files);
+    }
+
+    // Handle file input change
+    fileInput.addEventListener('change', function() {
+        displayFiles(this.files);
+    });
+
+    // Display selected files
+    function displayFiles(files) {
+        if (files.length === 0) {
+            fileList.innerHTML = '';
+            return;
+        }
+
+        let html = '<div class="alert alert-success"><strong>Selected files:</strong><ul class="mb-0 mt-2">';
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            html += `<li>${file.name} <small class="text-muted">(${sizeMB} MB)</small></li>`;
+        }
+        html += '</ul></div>';
+        fileList.innerHTML = html;
+    }
+</script>
+{% endblock %}
