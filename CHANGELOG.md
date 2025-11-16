@@ -99,48 +99,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## Version Comparison
-
-### What's New in 0.2.0?
-Version 0.2.0 transforms the basic PDF summarizer into a production-ready application with:
-
-- **60% potential cost reduction** through intelligent caching
-- **Enterprise-grade logging** for debugging and monitoring
-- **Abuse prevention** via rate limiting
-- **Automated maintenance** with scheduled cleanup
-- **Personalized experience** through session management
-- **Better error handling** with custom error pages
-
-### Migration from 0.1.0 to 0.2.0
-
-1. **Install new dependencies:**
-   ```bash
-   pip install -e .
-   ```
-
-2. **Update environment variables:**
-   ```bash
-   # Add to your .env file:
-   LOG_LEVEL=INFO
-   RETENTION_DAYS=30
-   CLEANUP_HOUR=3
-   ```
-
-3. **Database schema changes:**
-   - Option A: Delete `pdf_summaries.db` (fresh start)
-   - Option B: Use Flask-Migrate:
-     ```bash
-     flask db init
-     flask db migrate -m "Add caching and session support"
-     flask db upgrade
-     ```
-
-4. **Create logs directory:**
-   ```bash
-   mkdir -p logs
-   ```
-
----
-
 [0.2.0]: https://github.com/yourusername/pdf-summarizer/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/yourusername/pdf-summarizer/releases/tag/v0.1.0
