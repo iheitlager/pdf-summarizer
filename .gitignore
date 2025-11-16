@@ -21,9 +21,9 @@ wheels/
 *.egg
 
 # Virtual Environment
-venv/
-env/
-ENV/
+.venv/
+uv.lock
+.python-version
 
 # Flask
 instance/
@@ -59,8 +59,16 @@ migrations/
 
 # Logs
 *.log
+logs/*.log
 
 # Test
 .pytest_cache/
 .coverage
 htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Build
+*.egg
+dist/
+build/

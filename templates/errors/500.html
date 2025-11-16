@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Server Error - PDF Summarizer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-6 mx-auto text-center">
+        <div class="card shadow-sm">
+            <div class="card-body py-5">
+                <i class="bi bi-exclamation-octagon display-1 text-danger mb-4"></i>
+                <h1 class="display-4 mb-3">500</h1>
+                <h2 class="mb-4">Internal Server Error</h2>
+                <p class="text-muted mb-4">
+                    Oops! Something went wrong on our end. The error has been logged and we'll look into it.
+                </p>
+                <div class="alert alert-info text-start mb-4">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>What you can try:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Wait a few moments and try again</li>
+                        <li>Check if your PDF file is valid and not corrupted</li>
+                        <li>Ensure your PDF is under 10MB</li>
+                        <li>Try uploading a different file</li>
+                    </ul>
+                </div>
+                <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                    <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg px-4">
+                        <i class="bi bi-house"></i> Go Home
+                    </a>
+                    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-lg px-4">
+                        <i class="bi bi-arrow-left"></i> Go Back
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
