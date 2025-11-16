@@ -168,7 +168,7 @@ VALUES (
 #### 1. Find Upload by File Hash (Cache Lookup)
 
 ```python
-from pdf_summarizer.main import Upload, Summary
+from pdf_summarizer.models import Upload, Summary, db
 
 # Check if file has been processed before
 existing_upload = Upload.query.filter_by(file_hash="abc123...").first()
@@ -370,7 +370,7 @@ with app.app_context():
 # Using Flask shell
 flask shell
 
->>> from pdf_summarizer.main import db
+>>> from pdf_summarizer.models import db
 >>> db.create_all()
 >>> exit()
 ```
@@ -564,7 +564,7 @@ Benefits:
 
 ## Related Files
 
-- **Models**: [src/pdf_summarizer/main.py:91-121](../src/pdf_summarizer/main.py#L91-L121) - Database model definitions
+- **Models**: [src/pdf_summarizer/models.py](../src/pdf_summarizer/models.py) - Database model definitions
 - **Config**: [src/pdf_summarizer/config.py:22](../src/pdf_summarizer/config.py#L22) - Database URI configuration
 - **Tests**: [tests/test_models.py](../tests/test_models.py) - Model and relationship tests
 - **Migration**: Use Flask-Migrate for schema changes in production

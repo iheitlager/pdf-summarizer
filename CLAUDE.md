@@ -202,7 +202,8 @@ All Python source files must include copyright and license:
 .
 ├── src/pdf_summarizer/          # Main application package
 │   ├── __init__.py              # VERSION LOCATION #1
-│   ├── main.py                  # Flask app entry point (includes DB models)
+│   ├── main.py                  # Flask app entry point
+│   ├── models.py                # Database models (Upload, Summary)
 │   ├── config.py                # Centralized configuration
 │   ├── logging_config.py        # Logging setup
 │   ├── utils.py                 # Utility functions
@@ -248,13 +249,13 @@ The database schema is fully documented in [docs/database.md](docs/database.md).
 - Caching mechanism
 - Common query patterns
 
-**Database Models Location**: [src/pdf_summarizer/main.py:91-121](src/pdf_summarizer/main.py#L91-L121)
+**Database Models Location**: [src/pdf_summarizer/models.py](src/pdf_summarizer/models.py)
 
 ### Making Schema Changes
 
 When modifying the database schema:
 
-1. **Update the model** in `src/pdf_summarizer/main.py`
+1. **Update the model** in `src/pdf_summarizer/models.py`
 2. **Update docs/database.md** with the new schema details
 3. **Create migration** (for production deployments):
    ```bash
@@ -267,7 +268,7 @@ When modifying the database schema:
 
 ### Adding a New Table
 
-1. Define model in `main.py` (after existing models)
+1. Define model in `src/pdf_summarizer/models.py` (after existing models)
 2. Add relationships if needed
 3. Document in `docs/database.md` with full details
 4. Create test file `tests/test_new_model.py`

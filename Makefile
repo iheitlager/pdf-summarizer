@@ -26,9 +26,13 @@ env: ## Create and populate the development virtual environment
 	@mkdir -p uploads
 	@echo "To activate: source $(VENV)/bin/activate"
 
+settings: ## Create configuration settings .env
+	@echo "Creating settings"
+	@env.sh -i .env.example
+
 test: ## Run unit test suite with coverage
 	@echo "Running tests with coverage..."
-	@pytest -v tests/
+	uv run pytest -v tests/
 	@echo "✓ Tests completed. Coverage report generated in htmlcov/index.html"
 
 lint: ## Lint source and tests with ruff

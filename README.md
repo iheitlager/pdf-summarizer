@@ -1,6 +1,6 @@
 # PDF Summarizer
 
-**Version**: 0.2.4 | [Changelog](./CHANGELOG.md)
+**Version**: 0.2.5 | [Changelog](./CHANGELOG.md)
 
 A Flask web application that uploads PDF files and generates AI-powered summaries using Anthropic's Claude API.
 
@@ -101,7 +101,8 @@ or use my [env.sh](https://github.com/iheitlager/dotfiles/blob/main/bin/env.sh) 
 │   └── static/                 # CSS, JS, assets
 ├── tests/                      # Test suite (90%+ coverage)
 ├── docs/                       # Documentation
-│   └── database.md             # Database schema reference
+│   ├── database.md             # Database schema reference
+│   └── adr/                    # Architecture Decision Records
 ├── pyproject.toml              # Dependencies and config
 ├── Makefile                    # Build automation
 ├── CLAUDE.md                   # Developer guidelines

@@ -26,7 +26,6 @@ from flask import (
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_migrate import Migrate
-from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import SubmitField
@@ -47,6 +46,9 @@ from .logging_config import (
     log_upload,
     setup_logging,
 )
+
+# Import database models
+from .models import Summary, Upload, db
 
 # Import utility functions
 from .utils import calculate_file_hash, extract_text_from_pdf, save_uploaded_file
@@ -69,7 +71,7 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 # Initialize extensions
-db = SQLAlchemy(app)
+db.init_app(app)
 migrate = Migrate(app, db)
 
 # Initialize rate limiter
@@ -85,39 +87,6 @@ anthropic_client = Anthropic(api_key=Config.ANTHROPIC_API_KEY)
 
 # Setup logging
 api_logger = setup_logging(app)
-
-
-# Database Models
-class Upload(db.Model):  # type: ignore[name-defined]
-    id = db.Column(db.Integer, primary_key=True)
-    filename = db.Column(db.String(255), nullable=False)
-    original_filename = db.Column(db.String(255), nullable=False)
-    file_path = db.Column(db.String(500), nullable=False)
-    file_hash = db.Column(
-        db.String(64), index=True
-    )  # SHA256 hash for caching (not unique - multiple uploads can share hash)
-    session_id = db.Column(db.String(255), index=True)  # Track user sessions
-    upload_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
-    file_size = db.Column(db.Integer)
-    is_cached = db.Column(db.Boolean, default=False)  # Whether this was a cache hit
-    summaries = db.relationship(
-        "Summary", backref="upload", lazy=True, cascade="all, delete-orphan"
-    )
-
-    def __repr__(self):
-        return f"<Upload {self.original_filename}>"
-
-
-class Summary(db.Model):  # type: ignore[name-defined]
-    id = db.Column(db.Integer, primary_key=True)
-    upload_id = db.Column(db.Integer, db.ForeignKey("upload.id"), nullable=False)
-    summary_text = db.Column(db.Text, nullable=False)
-    created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
-    page_count = db.Column(db.Integer)
-    char_count = db.Column(db.Integer)
-
-    def __repr__(self):
-        return f"<Summary for Upload {self.upload_id}>"
 
 
 # Flask-WTF Form

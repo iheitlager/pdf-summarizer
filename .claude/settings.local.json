@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make type-check:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
