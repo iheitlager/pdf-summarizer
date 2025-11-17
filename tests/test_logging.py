@@ -37,19 +37,19 @@ class TestLoggingConfiguration:
 
         assert mock_logger.info.called
 
-    def test_log_api_call_success(self, mock_api_logger):
+    def test_log_api_call_success(self, mock_logger):
         """Should log successful API call."""
-        logging_config.log_api_call(mock_api_logger, "Test Operation", 2.5, success=True)
+        logging_config.log_api_call(mock_logger, "Test Operation", 2.5, success=True)
 
-        assert mock_api_logger.info.called
+        assert mock_logger.info.called
 
-    def test_log_api_call_failure(self, mock_api_logger):
+    def test_log_api_call_failure(self, mock_logger):
         """Should log failed API call."""
         logging_config.log_api_call(
-            mock_api_logger, "Test Operation", 2.5, success=False, error="API Error"
+            mock_logger, "Test Operation", 2.5, success=False, error="API Error"
         )
 
-        assert mock_api_logger.error.called
+        assert mock_logger.error.called
 
     def test_log_cache_hit(self, mock_logger):
         """Should log cache hit event."""

@@ -17,7 +17,7 @@ import pytest
 from werkzeug.datastructures import FileStorage
 from wtforms.validators import ValidationError
 
-from pdf_summarizer import main as app_module
+from pdf_summarizer.forms import UploadForm
 
 
 class TestUploadForm:
@@ -26,7 +26,7 @@ class TestUploadForm:
     def test_valid_pdf_file_passes_validation(self, app, sample_pdf):
         """Should pass validation for valid PDF file."""
         with app.app_context():
-            form = app_module.UploadForm()
+            form = UploadForm()
             form.pdf_files.data = FileStorage(
                 stream=sample_pdf, filename="test.pdf", content_type="application/pdf"
             )
@@ -38,7 +38,7 @@ class TestUploadForm:
     def test_non_pdf_file_fails_validation(self, app):
         """Should fail validation for non-PDF file."""
         with app.app_context():
-            form = app_module.UploadForm()
+            form = UploadForm()
             non_pdf = BytesIO(b"not a pdf")
             form.pdf_files.data = FileStorage(
                 stream=non_pdf, filename="test.txt", content_type="text/plain"
@@ -49,7 +49,7 @@ class TestUploadForm:
     def test_file_exceeding_size_limit_fails_validation(self, app, large_pdf):
         """Should fail validation for file >10MB."""
         with app.app_context():
-            form = app_module.UploadForm()
+            form = UploadForm()
             form.pdf_files.data = FileStorage(
                 stream=large_pdf, filename="large.pdf", content_type="application/pdf"
             )
@@ -61,7 +61,7 @@ class TestUploadForm:
     def test_empty_filename_handling(self, app):
         """Should handle empty filename gracefully."""
         with app.app_context():
-            form = app_module.UploadForm()
+            form = UploadForm()
             empty_file = BytesIO(b"")
             form.pdf_files.data = FileStorage(
                 stream=empty_file, filename="", content_type="application/pdf"
@@ -72,7 +72,7 @@ class TestUploadForm:
     def test_file_with_special_characters(self, app, sample_pdf):
         """Should handle filenames with special characters."""
         with app.app_context():
-            form = app_module.UploadForm()
+            form = UploadForm()
             form.pdf_files.data = FileStorage(
                 stream=sample_pdf,
                 filename="../../../etc/passwd.pdf",
@@ -84,7 +84,7 @@ class TestUploadForm:
     def test_form_has_submit_button(self, app):
         """Should have submit button field."""
         with app.app_context():
-            form = app_module.UploadForm()
+            form = UploadForm()
 
             assert hasattr(form, "submit")
             assert form.submit.label.text == "Upload and Summarize"
@@ -92,7 +92,7 @@ class TestUploadForm:
     def test_file_size_validation_with_valid_size(self, app, sample_pdf):
         """Should pass validation for file under 10MB."""
         with app.app_context():
-            form = app_module.UploadForm()
+            form = UploadForm()
             form.pdf_files.data = FileStorage(
                 stream=sample_pdf, filename="small.pdf", content_type="application/pdf"
             )
@@ -109,7 +109,7 @@ class TestUploadForm:
     def test_form_csrf_token_presence(self, app):
         """Should include CSRF token field in request context."""
         with app.test_request_context():
-            form = app_module.UploadForm()
+            form = UploadForm()
 
             # In test config, CSRF is disabled, but we can test the form field exists when enabled
             # Just verify the form renders correctly

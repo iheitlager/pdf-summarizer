@@ -78,7 +78,7 @@ clean: ## Remove virtualenv, artifacts, and caches
 
 run: ## Launch the Flask application via uv
 	@echo "Starting application..."
-	uv run python -m pdf_summarizer.main
+	uv run python -m main
 
 .DEFAULT_GOAL := help
 

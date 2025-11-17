@@ -5,7 +5,8 @@
 Tests for session management functionality.
 """
 
-from pdf_summarizer import main as app_module
+from pdf_summarizer.extensions import limiter
+from pdf_summarizer.models import Upload
 from tests import _create_sample_pdf
 
 
@@ -59,11 +60,11 @@ class TestSessionManagement:
                 session_1 = sess["session_id"]
 
             # Get uploads for session 1
-            uploads_1 = app_module.Upload.query.filter_by(session_id=session_1).all()
+            uploads_1 = Upload.query.filter_by(session_id=session_1).all()
 
             # Client 2
             client2 = app.test_client()
-            client2_limiter = app_module.limiter
+            client2_limiter = limiter
             client2_limiter.enabled = False
 
             pdf2 = _create_sample_pdf()
@@ -76,7 +77,7 @@ class TestSessionManagement:
             with client2.session_transaction() as sess:
                 session_2 = sess["session_id"]
 
-            uploads_2 = app_module.Upload.query.filter_by(session_id=session_2).all()
+            uploads_2 = Upload.query.filter_by(session_id=session_2).all()
 
             # Sessions should be different
             assert session_1 != session_2

@@ -25,25 +25,41 @@ class TestErrorHandlers:
 
     def test_500_handler_returns_500_template(self, app, mocker):
         """Should return 500 template when internal error occurs."""
-        # Disable testing mode temporarily to let exception handler run
-        app.config["TESTING"] = False
-        client = app.test_client()
+        # Get the error handler directly and test it
+        handlers = app.error_handler_spec.get(None, {})
+        error_handler_spec = handlers.get(500)
 
-        # Mock the index route to raise an exception
-        original_index = app.view_functions["index"]
+        # error_handler_spec is a dict mapping error classes to handler functions
+        # For our case, we want the default handler (usually for Exception or None key)
+        if isinstance(error_handler_spec, dict):
+            # Get the handler for Exception or the first available one
+            error_handler = (
+                error_handler_spec.get(Exception) or next(iter(error_handler_spec.values()))
+                if error_handler_spec
+                else None
+            )
+        else:
+            error_handler = error_handler_spec
 
-        def error_route():
-            raise RuntimeError("Test error")
+        assert error_handler is not None, "500 error handler not found"
 
-        try:
-            app.view_functions["index"] = error_route
-            response = client.get("/", follow_redirects=False)
+        # Mock render_template to verify it's called with the right template
+        mock_render = mocker.patch("pdf_summarizer.error_handlers.render_template")
+        mock_render.return_value = b"500 Error Template"
 
-            # Should get 500 error response
-            assert response.status_code == 500
-        finally:
-            app.view_functions["index"] = original_index
-            app.config["TESTING"] = True
+        # Create a mock error
+        test_error = RuntimeError("Test error")
+
+        # Call the error handler
+        with app.app_context():
+            result = error_handler(test_error)
+
+        # Verify the result
+        assert result == (b"500 Error Template", 500) or (
+            result[0] == b"500 Error Template" and result[1] == 500
+        )
+        # Verify render_template was called with the right template
+        mock_render.assert_called_once_with("errors/500.html")
 
     def test_500_handler_exists(self, app):
         """Should have a 500 error handler registered."""

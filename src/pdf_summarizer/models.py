@@ -5,12 +5,7 @@
 
 from datetime import UTC, datetime
 
-from flask_sqlalchemy import SQLAlchemy
-
-# SQLAlchemy instance shared across application modules
-# Initialized with the Flask app in pdf_summarizer.main
-# http://flask-sqlalchemy.palletsprojects.com/en/3.1.x/
-db = SQLAlchemy()
+from .extensions import db
 
 
 class Upload(db.Model):  # type: ignore[name-defined]

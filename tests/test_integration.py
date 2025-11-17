@@ -11,7 +11,8 @@ Tests cover:
 - Error recovery
 """
 
-from pdf_summarizer import main as app_module
+from pdf_summarizer.extensions import limiter
+from pdf_summarizer.models import Upload
 from tests import _create_sample_pdf
 
 
@@ -34,7 +35,7 @@ class TestCompleteUploadWorkflow:
             assert "/results" in response.location
 
             # 2. Extract upload ID from redirect
-            upload = app_module.Upload.query.first()
+            upload = Upload.query.first()
             assert upload is not None
 
             # 3. View results
@@ -64,7 +65,7 @@ class TestCompleteUploadWorkflow:
 
             assert response.status_code == 302
 
-            uploads = app_module.Upload.query.all()
+            uploads = Upload.query.all()
             assert len(uploads) == 2
 
             # Both should have summaries
@@ -76,7 +77,7 @@ class TestCompleteUploadWorkflow:
         with app.app_context():
             # Mock file hash to return consistent value
             test_hash = "consistent_hash_123"
-            mocker.patch("pdf_summarizer.main.calculate_file_hash", return_value=test_hash)
+            mocker.patch("pdf_summarizer.routes.calculate_file_hash", return_value=test_hash)
 
             # First upload
             pdf1 = _create_sample_pdf()
@@ -95,13 +96,11 @@ class TestCompleteUploadWorkflow:
             )
 
             # Should have two uploads but API called only once (cache hit on second)
-            uploads = app_module.Upload.query.all()
+            uploads = Upload.query.all()
             assert len(uploads) == 2
 
             # Second upload should be marked as cached
-            second_upload = app_module.Upload.query.filter_by(
-                original_filename="second.pdf"
-            ).first()
+            second_upload = Upload.query.filter_by(original_filename="second.pdf").first()
             assert second_upload.is_cached is True
 
 
@@ -112,11 +111,11 @@ class TestConcurrentUserScenarios:
         """Should handle uploads from different sessions concurrently."""
         with app.app_context():
             client1 = app.test_client()
-            client1_limiter = app_module.limiter
+            client1_limiter = limiter
             client1_limiter.enabled = False
 
             client2 = app.test_client()
-            client2_limiter = app_module.limiter
+            client2_limiter = limiter
             client2_limiter.enabled = False
 
             pdf1 = _create_sample_pdf()
@@ -138,7 +137,7 @@ class TestConcurrentUserScenarios:
             assert response2.status_code == 302
 
             # Should have 2 uploads with different sessions
-            uploads = app_module.Upload.query.all()
+            uploads = Upload.query.all()
             assert len(uploads) == 2
             assert uploads[0].session_id != uploads[1].session_id
 
@@ -146,11 +145,11 @@ class TestConcurrentUserScenarios:
         """Should show only current user's uploads in My Uploads."""
         with app.app_context():
             client1 = app.test_client()
-            client1_limiter = app_module.limiter
+            client1_limiter = limiter
             client1_limiter.enabled = False
 
             client2 = app.test_client()
-            client2_limiter = app_module.limiter
+            client2_limiter = limiter
             client2_limiter.enabled = False
 
             # User 1 upload
@@ -188,7 +187,7 @@ class TestErrorRecovery:
         with app.app_context():
             # First attempt fails
             mocker.patch(
-                "pdf_summarizer.main.summarize_with_claude", side_effect=Exception("API Error")
+                "pdf_summarizer.routes.summarize_with_claude", side_effect=Exception("API Error")
             )
 
             pdf1 = _create_sample_pdf()
@@ -204,7 +203,7 @@ class TestErrorRecovery:
 
             # Retry succeeds
             mocker.patch(
-                "pdf_summarizer.main.summarize_with_claude", return_value="Success summary"
+                "pdf_summarizer.routes.summarize_with_claude", return_value="Success summary"
             )
 
             pdf2 = _create_sample_pdf()
@@ -231,7 +230,7 @@ class TestErrorRecovery:
                 content_type="multipart/form-data",
             )
 
-            upload = app_module.Upload.query.first()
+            upload = Upload.query.first()
             summary = upload.summaries[0]
 
             # View results multiple times

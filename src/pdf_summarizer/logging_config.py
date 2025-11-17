@@ -72,21 +72,10 @@ def setup_logging(app):
     app.logger.addHandler(error_handler)
     app.logger.addHandler(console_handler)
 
-    # Create API logger
-    api_logger = logging.getLogger("api")
-    api_logger.setLevel(logging.INFO)
-    api_logger.addHandler(api_handler)
-    api_logger.addHandler(console_handler)
-
-    # Prevent duplicate logs from propagating
-    api_logger.propagate = False
-
     # Log startup
     app.logger.info("PDF Summarizer Application Started")
     app.logger.info(f"Log Level: {log_level}")
     app.logger.info(f"Debug Mode: {app.debug}")
-
-    return api_logger
 
 
 def log_upload(logger, filename, file_size, session_id):
@@ -101,15 +90,15 @@ def log_processing(logger, filename, pages, chars, duration):
     )
 
 
-def log_api_call(api_logger, operation, duration, success=True, error=None):
+def log_api_call(logger, operation, duration, success=True, error=None):
     """Log external API calls"""
     status = "SUCCESS" if success else "FAILED"
     msg = f"API Call: {operation} | Duration: {duration:.2f}s | Status: {status}"
     if error:
         msg += f" | Error: {error}"
-        api_logger.error(msg)
+        logger.error(msg)
     else:
-        api_logger.info(msg)
+        logger.info(msg)
 
 
 def log_cache_hit(logger, file_hash):
