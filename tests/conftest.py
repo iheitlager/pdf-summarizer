@@ -26,7 +26,11 @@ from reportlab.pdfgen import canvas
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from pdf_summarizer import main as app_module
+# Prevent the app module from validating Claude credentials during test imports
+os.environ.setdefault("SKIP_CLAUDE_VALIDATION", "true")
+
+from pdf_summarizer.factory import create_app
+from pdf_summarizer.models import Summary, Upload
 
 
 @pytest.fixture(scope="session")
@@ -37,37 +41,38 @@ def test_data_dir():
 
 @pytest.fixture
 def app():
-    """Create and configure a test Flask application instance."""
+    """Create and configure a test Flask application instance using factory pattern."""
     # Create temporary directories for testing
     temp_dir = tempfile.mkdtemp()
     upload_dir = os.path.join(temp_dir, "uploads")
     os.makedirs(upload_dir, exist_ok=True)
 
-    # Configure app for testing
-    app_module.app.config.update(
-        {
+    # Create app using factory with test configuration
+    test_app, test_api_logger = create_app(
+        config_overrides={
             "TESTING": True,
             "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",  # In-memory database
             "WTF_CSRF_ENABLED": False,  # Disable CSRF for testing
             "UPLOAD_FOLDER": upload_dir,
             "SECRET_KEY": "test-secret-key",
             "SERVER_NAME": "localhost.localdomain",
-        }
+            "SKIP_CLAUDE_VALIDATION": True,
+        },
+        start_scheduler=False,  # Don't start scheduler in tests
     )
 
     # Create app context
-    with app_module.app.app_context():
-        app_module.db.create_all()
-        yield app_module.app
-        app_module.db.session.remove()
-        app_module.db.drop_all()
+    with test_app.app_context():
+        yield test_app
 
 
 @pytest.fixture
 def client(app):
     """Create a test client for the app with rate limiting disabled."""
+    from pdf_summarizer.extensions import limiter
+
     # Disable rate limiter for tests
-    app_module.limiter.enabled = False
+    limiter.enabled = False
     return app.test_client()
 
 
@@ -80,7 +85,9 @@ def runner(app):
 @pytest.fixture
 def db(app):
     """Return the database instance."""
-    return app_module.db
+    from pdf_summarizer.extensions import db as db_ext
+
+    return db_ext
 
 
 @pytest.fixture(autouse=True)
@@ -95,16 +102,25 @@ def reset_database(db, app):
 
 
 @pytest.fixture
-def mock_anthropic(mocker):
-    """Mock Anthropic API client."""
+def mock_anthropic(app, mocker):
+    """Mock Anthropic API client via extension."""
     mock_response = Mock()
     mock_response.content = [Mock(text="This is a test summary of the document.")]
 
-    mock_create = mocker.patch.object(
-        app_module.anthropic_client.messages, "create", return_value=mock_response
-    )
+    # Get the extension and patch its client's messages.create method
+    anthropic_ext = app.extensions.get("anthropic")
+    if anthropic_ext and anthropic_ext.client:
+        mock_create = mocker.patch.object(
+            anthropic_ext.client.messages, "create", return_value=mock_response
+        )
+        return mock_create
 
-    return mock_create
+    # Fallback: create a mock client if extension not initialized
+    mock_client = Mock()
+    mock_client.messages.create.return_value = mock_response
+    if anthropic_ext:
+        anthropic_ext.client = mock_client
+    return mock_client.messages.create
 
 
 @pytest.fixture
@@ -206,7 +222,7 @@ def large_pdf():
 def sample_upload(db, app):
     """Create a sample Upload record in the database."""
     with app.app_context():
-        upload = app_module.Upload(
+        upload = Upload(
             filename="test_20231116_120000.pdf",
             original_filename="test.pdf",
             file_path="/tmp/uploads/test_20231116_120000.pdf",
@@ -222,14 +238,14 @@ def sample_upload(db, app):
 
     # Return a fresh instance that can be used in tests
     with app.app_context():
-        return db.session.get(app_module.Upload, upload_id)
+        return db.session.get(Upload, upload_id)
 
 
 @pytest.fixture
 def sample_summary(db, app, sample_upload):
     """Create a sample Summary record in the database."""
     with app.app_context():
-        summary = app_module.Summary(
+        summary = Summary(
             upload_id=sample_upload.id,
             summary_text="This is a test summary.",
             page_count=1,
@@ -242,14 +258,14 @@ def sample_summary(db, app, sample_upload):
 
     # Return a fresh instance that can be used in tests
     with app.app_context():
-        return db.session.get(app_module.Summary, summary_id)
+        return db.session.get(Summary, summary_id)
 
 
 @pytest.fixture
 def cached_upload(db, app):
     """Create a cached Upload with Summary for cache testing."""
     with app.app_context():
-        upload = app_module.Upload(
+        upload = Upload(
             filename="cached_20231116_120000.pdf",
             original_filename="cached.pdf",
             file_path="/tmp/uploads/cached_20231116_120000.pdf",
@@ -261,7 +277,7 @@ def cached_upload(db, app):
         db.session.add(upload)
         db.session.flush()
 
-        summary = app_module.Summary(
+        summary = Summary(
             upload_id=upload.id, summary_text="Cached summary text.", page_count=2, char_count=200
         )
         db.session.add(summary)
@@ -285,40 +301,31 @@ def temp_upload_dir(tmp_path):
 
 
 @pytest.fixture(autouse=True)
-def mock_upload_folder(mocker, tmp_path):
+def mock_upload_folder(mocker, tmp_path, app):
     """Mock the upload folder to use tmp_path."""
     upload_dir = tmp_path / "uploads"
     upload_dir.mkdir(exist_ok=True)
-    mocker.patch.object(
-        app_module.app.config,
-        "__getitem__",
-        side_effect=lambda k: (
-            str(upload_dir) if k == "UPLOAD_FOLDER" else app_module.app.config.data.get(k)
-        ),
-    )
+
+    # Update app config directly
+    app.config["UPLOAD_FOLDER"] = str(upload_dir)
     return upload_dir
 
 
 @pytest.fixture
-def mock_logger(mocker):
+def mock_logger(mocker, app):
     """Mock the application logger."""
-    return mocker.patch.object(app_module.app, "logger")
+    return mocker.patch.object(app, "logger")
 
 
 @pytest.fixture
-def mock_api_logger(mocker):
+def mock_api_logger(mocker, app):
     """Mock the API logger."""
-    return mocker.patch.object(app_module, "api_logger")
-
-
-@pytest.fixture(autouse=True)
-def disable_scheduler(mocker):
-    """Disable the background scheduler for tests."""
-    mocker.patch.object(app_module.scheduler, "start")
-    mocker.patch.object(app_module.scheduler, "shutdown")
+    # The api_logger is created in the factory, we need to mock it via the app context
+    mock_logger = mocker.Mock()
+    return mock_logger
 
 
 @pytest.fixture
 def mock_cleanup_job(mocker):
     """Mock the cleanup job function."""
-    return mocker.patch.object(app_module, "cleanup_old_uploads")
+    return mocker.patch("pdf_summarizer.cleanup.cleanup_old_uploads")

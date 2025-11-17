@@ -5,7 +5,8 @@
 Tests for caching mechanism and cache-related functionality.
 """
 
-from pdf_summarizer import main as app_module
+from pdf_summarizer.models import Summary, Upload
+from pdf_summarizer.routes import check_cache
 
 
 class TestCachingMechanism:
@@ -30,7 +31,7 @@ class TestCachingMechanism:
             # For now, verify the logic works when check_cache finds a match
 
             # Verify cache lookup returns cached upload
-            result = app_module.check_cache(cached_upload.file_hash)
+            result = check_cache(cached_upload.file_hash)
             assert result is not None
             assert result.id == cached_upload.id
 
@@ -38,13 +39,13 @@ class TestCachingMechanism:
         """Should create new Upload record even on cache hit."""
         with app.app_context():
             # Re-fetch the cached_upload within this context
-            upload = db.session.get(app_module.Upload, cached_upload.id)
-            initial_count = app_module.Upload.query.count()
+            upload = db.session.get(Upload, cached_upload.id)
+            initial_count = Upload.query.count()
 
             # Simulate cache hit scenario
             cached_summary = upload.summaries[0]
 
-            new_upload = app_module.Upload(
+            new_upload = Upload(
                 filename="new_file.pdf",
                 original_filename="new.pdf",
                 file_path="/tmp/new.pdf",
@@ -57,7 +58,7 @@ class TestCachingMechanism:
             db.session.flush()
 
             # Copy summary
-            new_summary = app_module.Summary(
+            new_summary = Summary(
                 upload_id=new_upload.id,
                 summary_text=cached_summary.summary_text,
                 page_count=cached_summary.page_count,
@@ -67,7 +68,7 @@ class TestCachingMechanism:
             db.session.commit()
 
             # Should have one more upload
-            assert app_module.Upload.query.count() == initial_count + 1
+            assert Upload.query.count() == initial_count + 1
             assert new_upload.is_cached is True
 
     def test_cache_miss_calls_api(self, client, app, db, mock_anthropic, sample_pdf):
@@ -89,7 +90,7 @@ class TestCachingMechanism:
     def test_cached_badge_shown_in_ui(self, client, app, db):
         """Should show cached badge in results UI."""
         with app.app_context():
-            upload = app_module.Upload(
+            upload = Upload(
                 filename="cached.pdf",
                 original_filename="cached.pdf",
                 file_path="/tmp/cached.pdf",
@@ -101,7 +102,7 @@ class TestCachingMechanism:
             db.session.add(upload)
             db.session.flush()
 
-            summary = app_module.Summary(
+            summary = Summary(
                 upload_id=upload.id, summary_text="Cached summary", page_count=1, char_count=100
             )
             db.session.add(summary)
@@ -116,7 +117,7 @@ class TestCachingMechanism:
         """Should allow different sessions to benefit from cache."""
         with app.app_context():
             # Different session uploads same file
-            new_upload = app_module.Upload(
+            new_upload = Upload(
                 filename="same_file.pdf",
                 original_filename="same.pdf",
                 file_path="/tmp/same.pdf",
@@ -129,5 +130,5 @@ class TestCachingMechanism:
             db.session.commit()
 
             # Should be able to use cached summary
-            cached_result = app_module.check_cache(cached_upload.file_hash)
+            cached_result = check_cache(cached_upload.file_hash)
             assert cached_result is not None

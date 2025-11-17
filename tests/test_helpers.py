@@ -20,8 +20,11 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from werkzeug.datastructures import FileStorage
 
-from pdf_summarizer import main as app_module
 from pdf_summarizer import utils
+from pdf_summarizer.claude_service import summarize_with_claude
+from pdf_summarizer.cleanup import cleanup_old_uploads
+from pdf_summarizer.models import Upload
+from pdf_summarizer.routes import check_cache, get_or_create_session_id
 
 
 class TestCalculateFileHash:
@@ -76,7 +79,7 @@ class TestCheckCache:
     def test_returns_upload_when_cached(self, app, db, cached_upload):
         """Should return upload when hash exists with summary."""
         with app.app_context():
-            result = app_module.check_cache(cached_upload.file_hash)
+            result = check_cache(cached_upload.file_hash)
 
             assert result is not None
             assert result.id == cached_upload.id
@@ -85,14 +88,14 @@ class TestCheckCache:
     def test_returns_none_when_not_cached(self, app):
         """Should return None when hash doesn't exist."""
         with app.app_context():
-            result = app_module.check_cache("nonexistent_hash_12345")
+            result = check_cache("nonexistent_hash_12345")
 
             assert result is None
 
     def test_returns_none_when_upload_has_no_summary(self, app, db):
         """Should return None when upload exists but has no summary."""
         with app.app_context():
-            upload = app_module.Upload(
+            upload = Upload(
                 filename="test.pdf",
                 original_filename="test.pdf",
                 file_path="/tmp/test.pdf",
@@ -103,7 +106,7 @@ class TestCheckCache:
             db.session.add(upload)
             db.session.commit()
 
-            result = app_module.check_cache("orphan_hash")
+            result = check_cache("orphan_hash")
 
             assert result is None
 
@@ -117,7 +120,7 @@ class TestExtractTextFromPDF:
             pdf_file = tmp_path / "test.pdf"
             pdf_file.write_bytes(sample_pdf.read())
 
-            text, page_count = utils.extract_text_from_pdf(str(pdf_file))
+            text, page_count = utils.extract_text_from_pdf(str(pdf_file), app.logger)
 
             assert isinstance(text, str)
             assert len(text) > 0
@@ -129,7 +132,7 @@ class TestExtractTextFromPDF:
             pdf_file = tmp_path / "multi.pdf"
             pdf_file.write_bytes(multipage_pdf.read())
 
-            text, page_count = utils.extract_text_from_pdf(str(pdf_file))
+            text, page_count = utils.extract_text_from_pdf(str(pdf_file), app.logger)
 
             assert isinstance(text, str)
             assert page_count == 3
@@ -141,7 +144,7 @@ class TestExtractTextFromPDF:
             pdf_file.write_bytes(corrupted_pdf.read())
 
             with pytest.raises(Exception) as exc_info:
-                utils.extract_text_from_pdf(str(pdf_file))
+                utils.extract_text_from_pdf(str(pdf_file), app.logger)
 
             assert "Error reading PDF" in str(exc_info.value)
 
@@ -154,7 +157,7 @@ class TestSummarizeWithClaude:
         with app.app_context():
             text = "This is a test document with some content."
 
-            summary = app_module.summarize_with_claude(text)
+            summary = summarize_with_claude(text, app.logger, app.logger)
 
             assert isinstance(summary, str)
             assert len(summary) > 0
@@ -167,7 +170,7 @@ class TestSummarizeWithClaude:
             # Create text longer than 100k characters
             long_text = "x" * 150000
 
-            app_module.summarize_with_claude(long_text)
+            summarize_with_claude(long_text, app.logger, app.logger)
 
             # Verify API was called with truncated text
             call_args = mock_anthropic.call_args
@@ -177,12 +180,14 @@ class TestSummarizeWithClaude:
     def test_raises_exception_on_api_error(self, app, mocker):
         """Should raise exception when API call fails."""
         with app.app_context():
+            # Get the anthropic client from the app extensions
+            anthropic_ext = app.extensions.get("anthropic")
             mocker.patch.object(
-                app_module.anthropic_client.messages, "create", side_effect=Exception("API Error")
+                anthropic_ext.client.messages, "create", side_effect=Exception("API Error")
             )
 
             with pytest.raises(Exception) as exc_info:
-                app_module.summarize_with_claude("test text")
+                summarize_with_claude("test text", app.logger, app.logger)
 
             assert "Error with Claude API" in str(exc_info.value)
 
@@ -214,9 +219,7 @@ class TestSaveUploadedFile:
                 stream=sample_pdf, filename="test.pdf", content_type="application/pdf"
             )
 
-            file_path, _, _, _ = utils.save_uploaded_file(
-                file_storage, app_module.app.config["UPLOAD_FOLDER"]
-            )
+            file_path, _, _, _ = utils.save_uploaded_file(file_storage, app.config["UPLOAD_FOLDER"])
 
             # File should exist and be in uploads folder
             assert os.path.exists(file_path)
@@ -233,7 +236,7 @@ class TestSaveUploadedFile:
             )
 
             _, unique_filename, _, _ = utils.save_uploaded_file(
-                file_storage, app_module.app.config["UPLOAD_FOLDER"]
+                file_storage, app.config["UPLOAD_FOLDER"]
             )
 
             # Filename should be sanitized
@@ -251,7 +254,7 @@ class TestCleanupOldUploads:
 
             # Create old upload
             old_date = datetime.now(UTC) - timedelta(days=31)
-            old_upload = app_module.Upload(
+            old_upload = Upload(
                 filename="old.pdf",
                 original_filename="old.pdf",
                 file_path=str(tmp_path / "old.pdf"),
@@ -263,7 +266,7 @@ class TestCleanupOldUploads:
             db.session.add(old_upload)
 
             # Create recent upload
-            recent_upload = app_module.Upload(
+            recent_upload = Upload(
                 filename="recent.pdf",
                 original_filename="recent.pdf",
                 file_path=str(tmp_path / "recent.pdf"),
@@ -278,11 +281,11 @@ class TestCleanupOldUploads:
             (tmp_path / "old.pdf").write_bytes(b"old")
             (tmp_path / "recent.pdf").write_bytes(b"recent")
 
-            app_module.cleanup_old_uploads()
+            cleanup_old_uploads(app)
 
             # Verify old upload deleted, recent kept
-            assert db.session.get(app_module.Upload, old_upload.id) is None
-            assert db.session.get(app_module.Upload, recent_upload.id) is not None
+            assert db.session.get(Upload, old_upload.id) is None
+            assert db.session.get(Upload, recent_upload.id) is not None
 
     def test_handles_missing_files_gracefully(self, app, db, mocker):
         """Should handle case where file doesn't exist on disk."""
@@ -290,7 +293,7 @@ class TestCleanupOldUploads:
             mocker.patch.dict(os.environ, {"RETENTION_DAYS": "30"})
 
             old_date = datetime.now(UTC) - timedelta(days=31)
-            upload = app_module.Upload(
+            upload = Upload(
                 filename="missing.pdf",
                 original_filename="missing.pdf",
                 file_path="/nonexistent/path/missing.pdf",
@@ -303,10 +306,10 @@ class TestCleanupOldUploads:
             db.session.commit()
 
             # Should not raise exception
-            app_module.cleanup_old_uploads()
+            cleanup_old_uploads(app)
 
             # Upload should still be deleted from database
-            assert db.session.get(app_module.Upload, upload.id) is None
+            assert db.session.get(Upload, upload.id) is None
 
 
 class TestGetOrCreateSessionId:
@@ -321,7 +324,7 @@ class TestGetOrCreateSessionId:
 
             with client:
                 client.get("/")
-                session_id = app_module.get_or_create_session_id()
+                session_id = get_or_create_session_id()
 
                 assert session_id is not None
                 assert len(session_id) > 0
@@ -334,7 +337,7 @@ class TestGetOrCreateSessionId:
 
             with client:
                 client.get("/")
-                session_id = app_module.get_or_create_session_id()
+                session_id = get_or_create_session_id()
 
                 assert session_id == mock_session_id
 
@@ -343,7 +346,7 @@ class TestGetOrCreateSessionId:
         with app.app_context():
             with client:
                 client.get("/")
-                session_id = app_module.get_or_create_session_id()
+                session_id = get_or_create_session_id()
 
                 # UUID format: 8-4-4-4-12
                 parts = session_id.split("-")

@@ -14,7 +14,7 @@ Tests cover:
 
 from datetime import UTC, datetime
 
-from pdf_summarizer import main as app_module
+from pdf_summarizer.models import Summary, Upload
 
 
 class TestUploadModel:
@@ -23,7 +23,7 @@ class TestUploadModel:
     def test_create_upload_with_all_fields(self, app, db):
         """Should create Upload with all fields populated."""
         with app.app_context():
-            upload = app_module.Upload(
+            upload = Upload(
                 filename="test_20231116_120000.pdf",
                 original_filename="test.pdf",
                 file_path="/uploads/test_20231116_120000.pdf",
@@ -47,7 +47,7 @@ class TestUploadModel:
     def test_upload_default_values(self, app, db):
         """Should apply default values for upload_date and is_cached."""
         with app.app_context():
-            upload = app_module.Upload(
+            upload = Upload(
                 filename="test.pdf",
                 original_filename="test.pdf",
                 file_path="/uploads/test.pdf",
@@ -63,7 +63,7 @@ class TestUploadModel:
     def test_upload_repr(self, app, db):
         """Should return readable string representation."""
         with app.app_context():
-            upload = app_module.Upload(
+            upload = Upload(
                 filename="test.pdf",
                 original_filename="original.pdf",
                 file_path="/uploads/test.pdf",
@@ -80,7 +80,7 @@ class TestUploadModel:
     def test_file_hash_allows_duplicates_for_caching(self, app, db):
         """Should allow multiple uploads with same file_hash for caching."""
         with app.app_context():
-            upload1 = app_module.Upload(
+            upload1 = Upload(
                 filename="test1.pdf",
                 original_filename="test1.pdf",
                 file_path="/uploads/test1.pdf",
@@ -92,7 +92,7 @@ class TestUploadModel:
             db.session.commit()
 
             # Second upload with same hash should succeed (cache hit scenario)
-            upload2 = app_module.Upload(
+            upload2 = Upload(
                 filename="test2.pdf",
                 original_filename="test2.pdf",
                 file_path="/uploads/test2.pdf",
@@ -105,7 +105,7 @@ class TestUploadModel:
             db.session.commit()
 
             # Both uploads should exist with same hash
-            uploads = app_module.Upload.query.filter_by(file_hash="same_hash_for_caching").all()
+            uploads = Upload.query.filter_by(file_hash="same_hash_for_caching").all()
             assert len(uploads) == 2
             assert uploads[0].file_hash == uploads[1].file_hash
             assert uploads[1].is_cached is True
@@ -113,14 +113,14 @@ class TestUploadModel:
     def test_query_by_session_id(self, app, db):
         """Should successfully query uploads by session_id."""
         with app.app_context():
-            upload1 = app_module.Upload(
+            upload1 = Upload(
                 filename="test1.pdf",
                 original_filename="test1.pdf",
                 file_path="/uploads/test1.pdf",
                 session_id="session-A",
                 file_size=1024,
             )
-            upload2 = app_module.Upload(
+            upload2 = Upload(
                 filename="test2.pdf",
                 original_filename="test2.pdf",
                 file_path="/uploads/test2.pdf",
@@ -130,7 +130,7 @@ class TestUploadModel:
             db.session.add_all([upload1, upload2])
             db.session.commit()
 
-            results = app_module.Upload.query.filter_by(session_id="session-A").all()
+            results = Upload.query.filter_by(session_id="session-A").all()
 
             assert len(results) == 1
             assert results[0].filename == "test1.pdf"
@@ -142,7 +142,7 @@ class TestSummaryModel:
     def test_create_summary_with_all_fields(self, app, db, sample_upload):
         """Should create Summary with all fields populated."""
         with app.app_context():
-            summary = app_module.Summary(
+            summary = Summary(
                 upload_id=sample_upload.id,
                 summary_text="This is a test summary.",
                 page_count=5,
@@ -161,7 +161,7 @@ class TestSummaryModel:
     def test_summary_default_created_date(self, app, db, sample_upload):
         """Should set created_date to current time by default."""
         with app.app_context():
-            summary = app_module.Summary(
+            summary = Summary(
                 upload_id=sample_upload.id,
                 summary_text="Test summary.",
                 page_count=1,
@@ -176,7 +176,7 @@ class TestSummaryModel:
     def test_summary_repr(self, app, db, sample_upload):
         """Should return readable string representation."""
         with app.app_context():
-            summary = app_module.Summary(
+            summary = Summary(
                 upload_id=sample_upload.id, summary_text="Test", page_count=1, char_count=100
             )
             db.session.add(summary)
@@ -194,12 +194,12 @@ class TestUploadSummaryRelationship:
         """Should access summaries through upload.summaries."""
         with app.app_context():
             # Re-fetch upload within this context
-            upload = db.session.get(app_module.Upload, sample_upload.id)
+            upload = db.session.get(Upload, sample_upload.id)
 
-            summary1 = app_module.Summary(
+            summary1 = Summary(
                 upload_id=upload.id, summary_text="Summary 1", page_count=1, char_count=100
             )
-            summary2 = app_module.Summary(
+            summary2 = Summary(
                 upload_id=upload.id, summary_text="Summary 2", page_count=2, char_count=200
             )
             db.session.add_all([summary1, summary2])
@@ -214,8 +214,8 @@ class TestUploadSummaryRelationship:
         """Should access upload through summary.upload."""
         with app.app_context():
             # Re-fetch both objects within this context
-            summary = db.session.get(app_module.Summary, sample_summary.id)
-            upload = db.session.get(app_module.Upload, sample_upload.id)
+            summary = db.session.get(Summary, sample_summary.id)
+            upload = db.session.get(Upload, sample_upload.id)
 
             assert summary.upload is not None
             assert summary.upload.id == upload.id
@@ -225,9 +225,9 @@ class TestUploadSummaryRelationship:
         """Should cascade delete summaries when upload is deleted."""
         with app.app_context():
             # Re-fetch upload within this context
-            upload = db.session.get(app_module.Upload, sample_upload.id)
+            upload = db.session.get(Upload, sample_upload.id)
 
-            summary = app_module.Summary(
+            summary = Summary(
                 upload_id=upload.id,
                 summary_text="Test summary",
                 page_count=1,
@@ -242,20 +242,20 @@ class TestUploadSummaryRelationship:
             db.session.commit()
 
             # Summary should be deleted
-            deleted_summary = db.session.get(app_module.Summary, summary_id)
+            deleted_summary = db.session.get(Summary, summary_id)
             assert deleted_summary is None
 
     def test_multiple_uploads_with_summaries(self, app, db):
         """Should handle multiple uploads each with their own summaries."""
         with app.app_context():
-            upload1 = app_module.Upload(
+            upload1 = Upload(
                 filename="test1.pdf",
                 original_filename="test1.pdf",
                 file_path="/uploads/test1.pdf",
                 session_id="session-1",
                 file_size=1024,
             )
-            upload2 = app_module.Upload(
+            upload2 = Upload(
                 filename="test2.pdf",
                 original_filename="test2.pdf",
                 file_path="/uploads/test2.pdf",
@@ -265,13 +265,13 @@ class TestUploadSummaryRelationship:
             db.session.add_all([upload1, upload2])
             db.session.flush()
 
-            summary1 = app_module.Summary(
+            summary1 = Summary(
                 upload_id=upload1.id,
                 summary_text="Summary for upload 1",
                 page_count=1,
                 char_count=100,
             )
-            summary2 = app_module.Summary(
+            summary2 = Summary(
                 upload_id=upload2.id,
                 summary_text="Summary for upload 2",
                 page_count=2,
@@ -297,7 +297,7 @@ class TestDatabaseQueries:
         with app.app_context():
             from datetime import timedelta
 
-            upload1 = app_module.Upload(
+            upload1 = Upload(
                 filename="old.pdf",
                 original_filename="old.pdf",
                 file_path="/uploads/old.pdf",
@@ -305,7 +305,7 @@ class TestDatabaseQueries:
                 file_size=1024,
                 upload_date=datetime.now(UTC) - timedelta(days=2),
             )
-            upload2 = app_module.Upload(
+            upload2 = Upload(
                 filename="new.pdf",
                 original_filename="new.pdf",
                 file_path="/uploads/new.pdf",
@@ -316,7 +316,7 @@ class TestDatabaseQueries:
             db.session.add_all([upload1, upload2])
             db.session.commit()
 
-            results = app_module.Upload.query.order_by(app_module.Upload.upload_date.desc()).all()
+            results = Upload.query.order_by(Upload.upload_date.desc()).all()
 
             assert results[0].original_filename == "new.pdf"
             assert results[1].original_filename == "old.pdf"
@@ -324,7 +324,7 @@ class TestDatabaseQueries:
     def test_filter_uploads_by_multiple_criteria(self, app, db):
         """Should filter uploads by multiple criteria."""
         with app.app_context():
-            upload1 = app_module.Upload(
+            upload1 = Upload(
                 filename="cached.pdf",
                 original_filename="cached.pdf",
                 file_path="/uploads/cached.pdf",
@@ -332,7 +332,7 @@ class TestDatabaseQueries:
                 file_size=1024,
                 is_cached=True,
             )
-            upload2 = app_module.Upload(
+            upload2 = Upload(
                 filename="processed.pdf",
                 original_filename="processed.pdf",
                 file_path="/uploads/processed.pdf",
@@ -343,9 +343,7 @@ class TestDatabaseQueries:
             db.session.add_all([upload1, upload2])
             db.session.commit()
 
-            results = app_module.Upload.query.filter_by(
-                session_id="session-1", is_cached=True
-            ).all()
+            results = Upload.query.filter_by(session_id="session-1", is_cached=True).all()
 
             assert len(results) == 1
             assert results[0].original_filename == "cached.pdf"

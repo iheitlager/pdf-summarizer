@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.6] - 2025-11-17
+
+### Added
+- **Application Factory Pattern**: New `factory.py` module with `create_app()` function for proper Flask app initialization
+- **Flask Extensions Module**: New `extensions.py` with singleton extension instances (`db`, `limiter`, `migrate`, `anthropic_ext`, `cleanup_scheduler`)
+- **Modular Route Handlers**: New `routes.py` module containing all route handlers and helper functions
+- **Error Handlers Module**: New `error_handlers.py` for centralized error handling (404, 429, 500)
+- **Forms Module**: New `forms.py` containing Flask-WTF form definitions
+- **Claude Service Module**: New `claude_service.py` for AI summarization functionality
+- **Cleanup Service Module**: New `cleanup.py` for background cleanup job logic
+
+### Changed
+- **Major Refactoring**: Restructured entire application following Flask best practices and application factory pattern
+- **Separation of Concerns**: Extracted functionality from monolithic `main.py` into 7 specialized modules
+- **Extension Initialization**: Extensions now properly initialized via factory pattern, preventing duplicate scheduler/client instances
+- **Test Infrastructure**: Updated all tests to use factory pattern with proper dependency injection
+- **Main Module**: Reduced `main.py` to slim entry point with backward compatibility layer for existing tests
+
+### Technical Improvements
+- Scheduler properly managed via extension wrapper, only starts when explicitly enabled (prevents duplicate jobs in tests)
+- Anthropic client managed as Flask extension with proper lifecycle
+- Database models properly imported before `db.create_all()` for correct SQLAlchemy registration
+- Rate limiter configuration streamlined via extension pattern
+- All tests updated to import from new modular structure
+
+---
+
 ## [0.2.5] - 2025-11-16
 
 ### Changed

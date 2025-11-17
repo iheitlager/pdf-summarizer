@@ -15,7 +15,7 @@ Tests cover all HTTP endpoints:
 from datetime import UTC
 from io import BytesIO
 
-from pdf_summarizer import main as app_module
+from pdf_summarizer.models import Summary, Upload
 
 
 class TestIndexRoute:
@@ -50,7 +50,7 @@ class TestIndexRoute:
             assert "/results" in response.location
 
             # Check database
-            uploads = app_module.Upload.query.all()
+            uploads = Upload.query.all()
             assert len(uploads) == 1
             assert uploads[0].original_filename == "test.pdf"
 
@@ -68,7 +68,7 @@ class TestIndexRoute:
 
             assert response.status_code == 302
 
-            uploads = app_module.Upload.query.all()
+            uploads = Upload.query.all()
             assert len(uploads) == 2
 
     def test_post_no_files_shows_error(self, client):
@@ -128,14 +128,14 @@ class TestResultsRoute:
     def test_displays_multiple_summaries(self, client, app, db):
         """Should display multiple summaries when multiple IDs provided."""
         with app.app_context():
-            upload1 = app_module.Upload(
+            upload1 = Upload(
                 filename="test1.pdf",
                 original_filename="test1.pdf",
                 file_path="/tmp/test1.pdf",
                 session_id="session-1",
                 file_size=1024,
             )
-            upload2 = app_module.Upload(
+            upload2 = Upload(
                 filename="test2.pdf",
                 original_filename="test2.pdf",
                 file_path="/tmp/test2.pdf",
@@ -145,10 +145,10 @@ class TestResultsRoute:
             db.session.add_all([upload1, upload2])
             db.session.flush()
 
-            summary1 = app_module.Summary(
+            summary1 = Summary(
                 upload_id=upload1.id, summary_text="Summary 1", page_count=1, char_count=100
             )
-            summary2 = app_module.Summary(
+            summary2 = Summary(
                 upload_id=upload2.id, summary_text="Summary 2", page_count=2, char_count=200
             )
             db.session.add_all([summary1, summary2])
@@ -202,14 +202,14 @@ class TestMyUploadsRoute:
                 sess["session_id"] = mock_session_id
 
             # Create uploads for different sessions
-            upload1 = app_module.Upload(
+            upload1 = Upload(
                 filename="mine.pdf",
                 original_filename="mine.pdf",
                 file_path="/tmp/mine.pdf",
                 session_id=mock_session_id,
                 file_size=1024,
             )
-            upload2 = app_module.Upload(
+            upload2 = Upload(
                 filename="other.pdf",
                 original_filename="other.pdf",
                 file_path="/tmp/other.pdf",
@@ -233,7 +233,7 @@ class TestMyUploadsRoute:
 
             from datetime import datetime, timedelta
 
-            upload1 = app_module.Upload(
+            upload1 = Upload(
                 filename="old_upload.pdf",
                 original_filename="old.pdf",
                 file_path="/uploads/old_upload.pdf",
@@ -241,7 +241,7 @@ class TestMyUploadsRoute:
                 file_size=1024,
                 upload_date=datetime.now(UTC) - timedelta(days=1),
             )
-            upload2 = app_module.Upload(
+            upload2 = Upload(
                 filename="new_upload.pdf",
                 original_filename="new.pdf",
                 file_path="/uploads/new_upload.pdf",
@@ -267,14 +267,14 @@ class TestAllSummariesRoute:
     def test_shows_all_uploads_from_all_sessions(self, client, app, db):
         """Should show uploads from all sessions."""
         with app.app_context():
-            upload1 = app_module.Upload(
+            upload1 = Upload(
                 filename="session1.pdf",
                 original_filename="session1.pdf",
                 file_path="/tmp/session1.pdf",
                 session_id="session-1",
                 file_size=1024,
             )
-            upload2 = app_module.Upload(
+            upload2 = Upload(
                 filename="session2.pdf",
                 original_filename="session2.pdf",
                 file_path="/tmp/session2.pdf",
@@ -295,7 +295,7 @@ class TestAllSummariesRoute:
         with app.app_context():
             from datetime import datetime, timedelta
 
-            upload1 = app_module.Upload(
+            upload1 = Upload(
                 filename="old_upload.pdf",
                 original_filename="old.pdf",
                 file_path="/uploads/old_upload.pdf",
@@ -303,7 +303,7 @@ class TestAllSummariesRoute:
                 file_size=1024,
                 upload_date=datetime.now(UTC) - timedelta(days=2),
             )
-            upload2 = app_module.Upload(
+            upload2 = Upload(
                 filename="new_upload.pdf",
                 original_filename="new.pdf",
                 file_path="/uploads/new_upload.pdf",
@@ -342,7 +342,7 @@ class TestRouteExceptionHandling:
     def test_download_with_exception_shows_error(self, client, app, db, mocker):
         """Should handle exceptions in download route gracefully."""
         # Mock to force an exception
-        mocker.patch.object(app_module.Summary, "query", side_effect=Exception("DB error"))
+        mocker.patch.object(Summary, "query", side_effect=Exception("DB error"))
 
         response = client.get("/download/1", follow_redirects=True)
 
@@ -396,7 +396,7 @@ class TestRouteExceptionHandling:
             assert response.status_code == 302
 
             # Should have created one upload
-            uploads = app_module.Upload.query.all()
+            uploads = Upload.query.all()
             assert len(uploads) >= 1
 
             # Most recent upload should NOT be marked as cached
