@@ -98,6 +98,11 @@ def reset_database(db, app):
         db.drop_all()
         db.create_all()
         yield db
+        # Clean up after test
+        db.session.remove()
+        db.drop_all()
+        # Dispose of the engine connection pool
+        db.engine.dispose()
         db.session.remove()
 
 
