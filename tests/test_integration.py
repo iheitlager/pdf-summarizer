@@ -77,7 +77,7 @@ class TestCompleteUploadWorkflow:
         with app.app_context():
             # Mock file hash to return consistent value
             test_hash = "consistent_hash_123"
-            mocker.patch("pdf_summarizer.main.calculate_file_hash", return_value=test_hash)
+            mocker.patch("pdf_summarizer.routes.calculate_file_hash", return_value=test_hash)
 
             # First upload
             pdf1 = _create_sample_pdf()
@@ -187,7 +187,7 @@ class TestErrorRecovery:
         with app.app_context():
             # First attempt fails
             mocker.patch(
-                "pdf_summarizer.main.summarize_with_claude", side_effect=Exception("API Error")
+                "pdf_summarizer.routes.summarize_with_claude", side_effect=Exception("API Error")
             )
 
             pdf1 = _create_sample_pdf()
@@ -203,7 +203,7 @@ class TestErrorRecovery:
 
             # Retry succeeds
             mocker.patch(
-                "pdf_summarizer.main.summarize_with_claude", return_value="Success summary"
+                "pdf_summarizer.routes.summarize_with_claude", return_value="Success summary"
             )
 
             pdf2 = _create_sample_pdf()

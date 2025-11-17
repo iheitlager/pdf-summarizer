@@ -230,12 +230,12 @@ class TestConfigCLIArguments:
             debug=False,
             api_key=None,
             database=None,
-            upload_folder="/custom/uploads",
+            upload_folder="/tmp/custom/uploads",
             log_level=None,
             retention_days=None,
         )
         Config.from_cli_args(args)
-        assert Config.UPLOAD_FOLDER == "/custom/uploads"
+        assert Config.UPLOAD_FOLDER == "/tmp/custom/uploads"
 
     def test_cli_override_log_level(self):
         """Should override log level from CLI argument."""

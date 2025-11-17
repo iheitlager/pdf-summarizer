@@ -32,9 +32,19 @@ def register_error_handlers(app):
     @app.errorhandler(500)
     def internal_error(error):
         """Handle 500 Internal Server errors."""
-        db.session.rollback()
+        try:
+            db.session.rollback()
+        except Exception as rollback_error:
+            app.logger.warning(f"Failed to rollback database session: {str(rollback_error)}")
+        
         app.logger.error(f"500 error: {str(error)}", exc_info=True)
-        return render_template("errors/500.html"), 500
+        
+        try:
+            return render_template("errors/500.html"), 500
+        except Exception as template_error:
+            app.logger.error(f"Failed to render 500 template: {str(template_error)}")
+            # Return a basic error response if template rendering fails
+            return "Internal Server Error", 500
 
     @app.errorhandler(429)
     def ratelimit_handler(e):

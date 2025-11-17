@@ -50,6 +50,9 @@ class TestCleanupJob:
 
             cleanup_old_uploads(app)
 
+            # Refresh database session after cleanup function runs
+            db.session.expunge_all()
+            
             assert db.session.get(Upload, old_id) is None
             assert db.session.get(Upload, recent_id) is not None
 
@@ -105,6 +108,9 @@ class TestCleanupJob:
             (tmp_path / "old.pdf").write_bytes(b"old")
 
             cleanup_old_uploads(app)
+
+            # Refresh database session after cleanup function runs
+            db.session.expunge_all()
 
             # Both upload and summary should be deleted
             assert db.session.get(Upload, upload_id) is None

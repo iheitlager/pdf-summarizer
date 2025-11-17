@@ -277,15 +277,22 @@ class TestCleanupOldUploads:
             db.session.add(recent_upload)
             db.session.commit()
 
+            # Capture IDs before cleanup (cleanup will delete the object from session)
+            old_upload_id = old_upload.id
+            recent_upload_id = recent_upload.id
+
             # Create files
             (tmp_path / "old.pdf").write_bytes(b"old")
             (tmp_path / "recent.pdf").write_bytes(b"recent")
 
             cleanup_old_uploads(app)
 
+            # Refresh database session after cleanup function runs
+            db.session.expunge_all()
+
             # Verify old upload deleted, recent kept
-            assert db.session.get(Upload, old_upload.id) is None
-            assert db.session.get(Upload, recent_upload.id) is not None
+            assert db.session.get(Upload, old_upload_id) is None
+            assert db.session.get(Upload, recent_upload_id) is not None
 
     def test_handles_missing_files_gracefully(self, app, db, mocker):
         """Should handle case where file doesn't exist on disk."""
@@ -305,11 +312,17 @@ class TestCleanupOldUploads:
             db.session.add(upload)
             db.session.commit()
 
+            # Capture ID before cleanup (cleanup will delete the object from session)
+            upload_id = upload.id
+
             # Should not raise exception
             cleanup_old_uploads(app)
 
+            # Refresh database session after cleanup function runs
+            db.session.expunge_all()
+
             # Upload should still be deleted from database
-            assert db.session.get(Upload, upload.id) is None
+            assert db.session.get(Upload, upload_id) is None
 
 
 class TestGetOrCreateSessionId:

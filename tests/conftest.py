@@ -329,3 +329,35 @@ def mock_api_logger(mocker, app):
 def mock_cleanup_job(mocker):
     """Mock the cleanup job function."""
     return mocker.patch("pdf_summarizer.cleanup.cleanup_old_uploads")
+
+
+@pytest.fixture(autouse=True)
+def reset_config():
+    """Reset Config class attributes before and after each test to avoid cross-test contamination."""
+    from pdf_summarizer.config import Config
+    
+    # Define default values to reset to
+    default_values = {
+        "SECRET_KEY": "dev-secret-key-change-in-production",
+        "SQLALCHEMY_DATABASE_URI": "sqlite:///pdf_summaries.db",
+        "UPLOAD_FOLDER": "uploads",
+        "ANTHROPIC_API_KEY": None,
+        "CLAUDE_MODEL": "claude-sonnet-4-5-20250929",
+        "LOG_LEVEL": "INFO",
+        "LOG_DIR": "logs",
+        "RETENTION_DAYS": 30,
+        "HOST": "127.0.0.1",
+        "PORT": 5000,
+        "DEBUG": False,
+        "FLASK_ENV": "production",
+    }
+    
+    # Reset BEFORE test runs
+    for key, value in default_values.items():
+        setattr(Config, key, value)
+    
+    yield
+    
+    # Reset AFTER test runs
+    for key, value in default_values.items():
+        setattr(Config, key, value)

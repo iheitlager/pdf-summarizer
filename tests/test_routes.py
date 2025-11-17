@@ -384,7 +384,7 @@ class TestRouteExceptionHandling:
         """Should create new summary on cache miss."""
         with app.app_context():
             # Mock to ensure cache miss
-            mocker.patch("pdf_summarizer.main.check_cache", return_value=None)
+            mocker.patch("pdf_summarizer.routes.check_cache", return_value=None)
 
             data = {"pdf_files": (sample_pdf, "unique.pdf")}
 
