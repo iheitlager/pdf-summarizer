@@ -50,12 +50,6 @@ def create_app(config_overrides=None, start_scheduler=True):
             start_scheduler=False
         )
     """
-    from dotenv import load_dotenv
-    
-    # Load environment variables if not already loaded
-    load_dotenv()
-    # Load CLI args into Config (if any)
-    Config.from_cli_args()
 
     # If test or runtime callers provide overrides, apply them to the Config
     # class before validation so validation uses the effective values.
@@ -71,16 +65,11 @@ def create_app(config_overrides=None, start_scheduler=True):
     if errors:
         raise ValueError("Configuration validation failed", errors)
 
-
     # Create Flask application
     app = Flask(__name__)
 
     # Load base configuration from Config class
     app.config.from_object(Config)
-
-    # Apply configuration overrides (from tests or other sources)
-    if config_overrides:
-        app.config.update(config_overrides)
 
     # Ensure required directories exist
     Config.ensure_directories()
