@@ -26,11 +26,19 @@ env: ## Create and populate the development virtual environment
 	uv pip install --python $(VENV)/bin/python -e ".[dev]" >/dev/null
 	@mkdir -p logs
 	@mkdir -p uploads
+	@if [ ! -f uv.lock ]; then \
+			echo "No uv.lock found, generating lock file..."; \
+			uv lock; \
+		fi
 	@echo "To activate: source $(VENV)/bin/activate"
 
 settings: ## Create configuration settings .env
 	@echo "Creating settings"
 	@env.sh -i .env.example
+
+lock: ## Lock dependencies into uv.lock
+	@echo "Locking dependencies..."
+	uv lock
 
 test: ## Run unit test suite with coverage
 	@echo "Running tests with coverage..."
