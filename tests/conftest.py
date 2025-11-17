@@ -335,7 +335,7 @@ def mock_cleanup_job(mocker):
 def reset_config():
     """Reset Config class attributes before and after each test to avoid cross-test contamination."""
     from pdf_summarizer.config import Config
-    
+
     # Define default values to reset to
     default_values = {
         "SECRET_KEY": "dev-secret-key-change-in-production",
@@ -351,13 +351,13 @@ def reset_config():
         "DEBUG": False,
         "FLASK_ENV": "production",
     }
-    
+
     # Reset BEFORE test runs
     for key, value in default_values.items():
         setattr(Config, key, value)
-    
+
     yield
-    
+
     # Reset AFTER test runs
     for key, value in default_values.items():
         setattr(Config, key, value)

@@ -52,7 +52,7 @@ class TestCleanupJob:
 
             # Refresh database session after cleanup function runs
             db.session.expunge_all()
-            
+
             assert db.session.get(Upload, old_id) is None
             assert db.session.get(Upload, recent_id) is not None
 

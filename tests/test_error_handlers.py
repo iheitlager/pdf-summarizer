@@ -28,30 +28,36 @@ class TestErrorHandlers:
         # Get the error handler directly and test it
         handlers = app.error_handler_spec.get(None, {})
         error_handler_spec = handlers.get(500)
-        
+
         # error_handler_spec is a dict mapping error classes to handler functions
         # For our case, we want the default handler (usually for Exception or None key)
         if isinstance(error_handler_spec, dict):
             # Get the handler for Exception or the first available one
-            error_handler = error_handler_spec.get(Exception) or next(iter(error_handler_spec.values())) if error_handler_spec else None
+            error_handler = (
+                error_handler_spec.get(Exception) or next(iter(error_handler_spec.values()))
+                if error_handler_spec
+                else None
+            )
         else:
             error_handler = error_handler_spec
-        
+
         assert error_handler is not None, "500 error handler not found"
-        
+
         # Mock render_template to verify it's called with the right template
         mock_render = mocker.patch("pdf_summarizer.error_handlers.render_template")
         mock_render.return_value = b"500 Error Template"
-        
+
         # Create a mock error
         test_error = RuntimeError("Test error")
-        
+
         # Call the error handler
         with app.app_context():
             result = error_handler(test_error)
-        
+
         # Verify the result
-        assert result == (b"500 Error Template", 500) or (result[0] == b"500 Error Template" and result[1] == 500)
+        assert result == (b"500 Error Template", 500) or (
+            result[0] == b"500 Error Template" and result[1] == 500
+        )
         # Verify render_template was called with the right template
         mock_render.assert_called_once_with("errors/500.html")
 
