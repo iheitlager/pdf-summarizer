@@ -29,6 +29,7 @@ class Config:
 
     # Anthropic API Configuration
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+    SKIP_CLAUDE_VALIDATION = os.getenv("SKIP_CLAUDE_VALIDATION", "false").lower()[0] in ["1", "y", "t"]
     CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-5-20250929")
     MAX_TOKENS = int(os.getenv("MAX_TOKENS", "1024"))
     MAX_TEXT_LENGTH = int(os.getenv("MAX_TEXT_LENGTH", "100000"))
@@ -57,7 +58,7 @@ class Config:
     FLASK_ENV = os.getenv("FLASK_ENV", "production")
 
     @classmethod
-    def from_cli_args(cls, args=None):
+    def from_cli_args(cls, args=None) -> argparse.Namespace:
         """
         Update configuration from command-line arguments.
 

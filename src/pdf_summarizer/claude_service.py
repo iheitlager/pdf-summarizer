@@ -42,6 +42,9 @@ def validate_claude_model(app):
     Makes a minimal test call to the API to verify the model exists
     and is accessible with the configured API key.
 
+    In development mode, this validation is skipped as dummy API keys
+    may be used for local testing.
+
     Args:
         app: Flask application instance
 
@@ -54,6 +57,14 @@ def validate_claude_model(app):
     if not anthropic_ext or not anthropic_ext.client:
         app.logger.error("Anthropic client not initialized")
         return False
+
+    # Skip validation in development mode
+    flask_env = app.config.get("FLASK_ENV", "production")
+    if flask_env == "development":
+        app.logger.info(
+            f"✓ Claude model '{model}' configured (validation skipped in development mode)"
+        )
+        return True
 
     try:
         # Make a minimal test call to validate the model exists

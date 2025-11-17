@@ -12,9 +12,7 @@ and configures Flask application instances. This pattern enables:
 - Proper separation of concerns
 """
 
-import os
 
-from dotenv import load_dotenv
 from flask import Flask
 
 from .claude_service import validate_claude_model
@@ -22,7 +20,6 @@ from .config import Config
 from .error_handlers import register_error_handlers
 from .extensions import anthropic_ext, cleanup_scheduler, db, limiter, migrate
 from .logging_config import setup_logging
-from .models import Summary, Upload  # noqa: F401 - needed for SQLAlchemy to register models
 from .routes import register_routes
 
 
@@ -53,8 +50,16 @@ def create_app(config_overrides=None, start_scheduler=True):
             start_scheduler=False
         )
     """
+    from dotenv import load_dotenv
+    
     # Load environment variables if not already loaded
     load_dotenv()
+    # Validate configuration
+    Config.from_cli_args()
+    errors = Config.validate()
+    if errors:
+        raise ValueError("Configuration validation failed", errors)
+
 
     # Create Flask application
     app = Flask(__name__)
@@ -75,10 +80,6 @@ def create_app(config_overrides=None, start_scheduler=True):
     # Initialize migration extension
     migrate.init_app(app, db)
 
-    # Initialize rate limiter
-    # Set storage_uri in app config for the limiter
-    if "RATE_LIMIT_STORAGE_URI" not in app.config:
-        app.config["RATE_LIMIT_STORAGE_URI"] = "memory://"
     limiter.init_app(app)
 
     # Initialize Anthropic extension
@@ -100,16 +101,8 @@ def create_app(config_overrides=None, start_scheduler=True):
     with app.app_context():
         db.create_all()
 
-        # Validate Claude model availability unless explicitly skipped
-        skip_validation = os.getenv(
-            "SKIP_CLAUDE_VALIDATION", "false"
-        ).lower() == "true" or app.config.get("SKIP_CLAUDE_VALIDATION", False)
-
-        if skip_validation:
-            app.logger.info("Skipping Claude model validation (SKIP_CLAUDE_VALIDATION=true)")
-        else:
+        if not app.config.get("SKIP_CLAUDE_VALIDATION", False):
             if not validate_claude_model(app):
-                app.logger.critical("Claude model validation failed - aborting application startup")
                 raise RuntimeError(
                     "Claude model is not available. Check CLAUDE_MODEL environment variable and API key"
                 )

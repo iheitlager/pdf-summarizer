@@ -114,6 +114,9 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+filterwarnings = [
+    "ignore:Using the in-memory storage for tracking rate limits:UserWarning",
+]
 
 [tool.coverage.run]
 source = ["."]
