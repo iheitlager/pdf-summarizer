@@ -10,8 +10,8 @@ including validation logic for file uploads.
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
-from wtforms import SubmitField
-from wtforms.validators import ValidationError
+from wtforms import BooleanField, SelectField, StringField, SubmitField, TextAreaField
+from wtforms.validators import DataRequired, Length, ValidationError
 
 
 class UploadForm(FlaskForm):
@@ -20,6 +20,11 @@ class UploadForm(FlaskForm):
     pdf_files = FileField(
         "PDF Files",
         validators=[FileRequired(), FileAllowed(["pdf"], "Only PDF files are allowed!")],
+    )
+    prompt_template = SelectField(
+        "Prompt Template",
+        coerce=int,
+        validators=[DataRequired()],
     )
     submit = SubmitField("Upload and Summarize")
 
@@ -41,3 +46,25 @@ class UploadForm(FlaskForm):
 
             if file_size > 10 * 1024 * 1024:  # 10MB
                 raise ValidationError("File size must not exceed 10MB")
+
+
+class PromptTemplateForm(FlaskForm):
+    """Form for creating and editing prompt templates."""
+
+    name = StringField(
+        "Template Name",
+        validators=[
+            DataRequired(message="Template name is required"),
+            Length(min=1, max=100, message="Name must be between 1 and 100 characters"),
+        ],
+    )
+    prompt_text = TextAreaField(
+        "Prompt Text",
+        validators=[
+            DataRequired(message="Prompt text is required"),
+            Length(min=1, max=5000, message="Prompt text must be between 1 and 5000 characters"),
+        ],
+        render_kw={"rows": 10, "placeholder": "Enter the prompt text for summarization..."},
+    )
+    is_active = BooleanField("Active", default=True)
+    submit = SubmitField("Save Template")

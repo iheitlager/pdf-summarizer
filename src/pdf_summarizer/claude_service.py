@@ -88,13 +88,14 @@ def validate_claude_model(app):
         return False
 
 
-def summarize_with_claude(text, logger):
+def summarize_with_claude(text, logger, prompt_text=None):
     """
     Summarize text using Anthropic Claude API.
 
     Args:
         text: Text content to summarize
         logger: Application logger instance
+        prompt_text: Custom prompt text to use (optional, uses default if not provided)
 
     Returns:
         str: Generated summary text
@@ -112,6 +113,10 @@ def summarize_with_claude(text, logger):
         max_tokens = config.get("MAX_TOKENS", 1024)
         max_text_length = config.get("MAX_TEXT_LENGTH", 100000)
 
+        # Use provided prompt or fall back to default
+        if prompt_text is None:
+            prompt_text = config.get("DEFAULT_PROMPT_TEXT")
+
         # Use Claude model (configurable via environment variable)
         message = client.messages.create(
             model=model,
@@ -119,7 +124,7 @@ def summarize_with_claude(text, logger):
             messages=[
                 {
                     "role": "user",
-                    "content": f"Please provide a concise summary of the following document. Focus on the main points, key findings, and important details:\n\n{text[:max_text_length]}",
+                    "content": f"{prompt_text}\n\n{text[:max_text_length]}",
                 }
             ],
         )

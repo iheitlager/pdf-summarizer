@@ -26,7 +26,7 @@ from flask import (
 
 from .claude_service import summarize_with_claude
 from .extensions import db, limiter
-from .forms import UploadForm
+from .forms import PromptTemplateForm, UploadForm
 from .logging_config import (
     log_cache_hit,
     log_cache_miss,
@@ -34,7 +34,7 @@ from .logging_config import (
     log_processing,
     log_upload,
 )
-from .models import Summary, Upload
+from .models import PromptTemplate, Summary, Upload
 from .utils import calculate_file_hash, extract_text_from_pdf, save_uploaded_file
 
 
@@ -52,19 +52,27 @@ def get_or_create_session_id():
     return session["session_id"]
 
 
-def check_cache(file_hash):
+def check_cache(file_hash, prompt_template_id=None):
     """
-    Check if a file with this hash has been processed before.
+    Check if a file with this hash has been processed before with the same prompt.
 
     Args:
         file_hash: SHA256 hash of the file
+        prompt_template_id: ID of the prompt template used (optional)
 
     Returns:
         Upload: Cached upload record if found, None otherwise
     """
-    cached_upload = Upload.query.filter_by(file_hash=file_hash).first()
-    if cached_upload and cached_upload.summaries:
-        return cached_upload
+    # Find uploads with matching file hash
+    uploads = Upload.query.filter_by(file_hash=file_hash).all()
+
+    # Check if any have a summary with matching prompt_template_id
+    for upload in uploads:
+        if upload.summaries:
+            summary = upload.summaries[0]
+            if summary.prompt_template_id == prompt_template_id:
+                return upload
+
     return None
 
 
@@ -83,7 +91,29 @@ def register_routes(app):
         form = UploadForm()
         session_id = get_or_create_session_id()
 
+        # Populate prompt template choices
+        active_prompts = PromptTemplate.query.filter_by(is_active=True).all()
+        if not active_prompts:
+            flash("No active prompt templates available. Please create one.", "error")
+            return redirect(url_for("prompts_list"))
+
+        form.prompt_template.choices = [(p.id, p.name) for p in active_prompts]
+
+        # Set default to "Basic Summary" if available
+        if request.method == "GET":
+            default_prompt = next((p for p in active_prompts if p.name == "Basic Summary"), None)
+            if default_prompt:
+                form.prompt_template.data = default_prompt.id
+            elif active_prompts:
+                form.prompt_template.data = active_prompts[0].id
+
         if form.validate_on_submit():
+            # Get selected prompt template
+            prompt_template_id = form.prompt_template.data
+            prompt_template = PromptTemplate.query.get(prompt_template_id)
+            if not prompt_template:
+                flash("Invalid prompt template selected", "error")
+                return redirect(request.url)
             start_time = time.time()
             try:
                 # Get uploaded files (multiple files support)
@@ -111,8 +141,8 @@ def register_routes(app):
                     # Calculate file hash for caching
                     file_hash = calculate_file_hash(file_path)
 
-                    # Check cache
-                    cached_upload = check_cache(file_hash)
+                    # Check cache (with prompt template)
+                    cached_upload = check_cache(file_hash, prompt_template_id)
 
                     if cached_upload:
                         # Cache hit - create new upload record pointing to cached summary
@@ -134,6 +164,7 @@ def register_routes(app):
                         cached_summary = cached_upload.summaries[0]
                         summary = Summary(
                             upload_id=upload.id,
+                            prompt_template_id=prompt_template_id,
                             summary_text=cached_summary.summary_text,
                             page_count=cached_summary.page_count,
                             char_count=cached_summary.char_count,
@@ -161,12 +192,15 @@ def register_routes(app):
                         # Extract text from PDF
                         text, page_count = extract_text_from_pdf(file_path, app.logger)
 
-                        # Generate summary with Claude
-                        summary_text = summarize_with_claude(text, app.logger)
+                        # Generate summary with Claude using selected prompt
+                        summary_text = summarize_with_claude(
+                            text, app.logger, prompt_text=prompt_template.prompt_text
+                        )
 
                         # Create summary record
                         summary = Summary(
                             upload_id=upload.id,
+                            prompt_template_id=prompt_template_id,
                             summary_text=summary_text,
                             page_count=page_count,
                             char_count=len(text),
@@ -284,3 +318,116 @@ def register_routes(app):
         uploads = Upload.query.order_by(Upload.upload_date.desc()).all()
         app.logger.info(f"All summaries accessed: {len(uploads)} total uploads")
         return render_template("results.html", uploads=uploads, title="All Summaries")
+
+    @app.route("/prompts")
+    def prompts_list():
+        """List all prompt templates."""
+        prompts = PromptTemplate.query.order_by(PromptTemplate.created_date.desc()).all()
+        app.logger.info(f"Prompts list accessed: {len(prompts)} templates")
+        return render_template("prompts/list.html", prompts=prompts)
+
+    @app.route("/prompts/new", methods=["GET", "POST"])
+    def prompts_new():
+        """Create a new prompt template."""
+        form = PromptTemplateForm()
+
+        if form.validate_on_submit():
+            try:
+                # Check if name already exists
+                existing = PromptTemplate.query.filter_by(name=form.name.data).first()
+                if existing:
+                    flash(f"A prompt template with name '{form.name.data}' already exists", "error")
+                    return redirect(request.url)
+
+                prompt = PromptTemplate(
+                    name=form.name.data,
+                    prompt_text=form.prompt_text.data,
+                    is_active=form.is_active.data,
+                )
+                prompt.validate()  # Run model validation
+                db.session.add(prompt)
+                db.session.commit()
+
+                flash(f"Prompt template '{prompt.name}' created successfully", "success")
+                app.logger.info(f"New prompt template created: {prompt.name}")
+                return redirect(url_for("prompts_list"))
+
+            except ValueError as e:
+                flash(f"Validation error: {str(e)}", "error")
+                return redirect(request.url)
+            except Exception as e:
+                db.session.rollback()
+                log_error_with_context(app.logger, e, "Create prompt template")
+                flash(f"Error creating prompt template: {str(e)}", "error")
+                return redirect(request.url)
+
+        return render_template("prompts/form.html", form=form, title="Create Prompt Template")
+
+    @app.route("/prompts/<int:prompt_id>/edit", methods=["GET", "POST"])
+    def prompts_edit(prompt_id):
+        """Edit an existing prompt template."""
+        prompt = PromptTemplate.query.get_or_404(prompt_id)
+        form = PromptTemplateForm(obj=prompt)
+
+        if form.validate_on_submit():
+            try:
+                # Check if name already exists (excluding current prompt)
+                existing = PromptTemplate.query.filter(
+                    PromptTemplate.name == form.name.data, PromptTemplate.id != prompt_id
+                ).first()
+                if existing:
+                    flash(f"A prompt template with name '{form.name.data}' already exists", "error")
+                    return redirect(request.url)
+
+                prompt.name = form.name.data
+                prompt.prompt_text = form.prompt_text.data
+                prompt.is_active = form.is_active.data
+                prompt.validate()  # Run model validation
+
+                db.session.commit()
+
+                flash(f"Prompt template '{prompt.name}' updated successfully", "success")
+                app.logger.info(f"Prompt template updated: {prompt.name}")
+                return redirect(url_for("prompts_list"))
+
+            except ValueError as e:
+                flash(f"Validation error: {str(e)}", "error")
+                return redirect(request.url)
+            except Exception as e:
+                db.session.rollback()
+                log_error_with_context(app.logger, e, f"Edit prompt template {prompt_id}")
+                flash(f"Error updating prompt template: {str(e)}", "error")
+                return redirect(request.url)
+
+        return render_template(
+            "prompts/form.html", form=form, title=f"Edit Prompt: {prompt.name}", prompt=prompt
+        )
+
+    @app.route("/prompts/<int:prompt_id>/delete", methods=["POST"])
+    def prompts_delete(prompt_id):
+        """Delete a prompt template."""
+        prompt = PromptTemplate.query.get_or_404(prompt_id)
+
+        try:
+            # Check if prompt is in use by any summaries
+            summary_count = Summary.query.filter_by(prompt_template_id=prompt_id).count()
+            if summary_count > 0:
+                flash(
+                    f"Cannot delete prompt '{prompt.name}': it is used by {summary_count} summaries",
+                    "error",
+                )
+                return redirect(url_for("prompts_list"))
+
+            prompt_name = prompt.name
+            db.session.delete(prompt)
+            db.session.commit()
+
+            flash(f"Prompt template '{prompt_name}' deleted successfully", "success")
+            app.logger.info(f"Prompt template deleted: {prompt_name}")
+
+        except Exception as e:
+            db.session.rollback()
+            log_error_with_context(app.logger, e, f"Delete prompt template {prompt_id}")
+            flash(f"Error deleting prompt template: {str(e)}", "error")
+
+        return redirect(url_for("prompts_list"))

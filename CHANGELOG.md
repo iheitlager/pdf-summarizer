@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-11-17
+
+### Added
+- **Prompt Template Management**: CRUD interface for managing reusable prompt templates
+- **Prompt Selection on Upload**: Dropdown to select prompt template when uploading PDFs
+- **PromptTemplate Model**: New database table for storing prompt templates with name, text, and active status
+- **Default Prompt Seeding**: Automatic creation of "Basic Summary" prompt on first run
+- **Prompt-Aware Caching**: Cache key now includes both file hash and prompt template ID
+
+### Changed
+- **Summary Model**: Added `prompt_template_id` foreign key to track which prompt was used
+- **Cache Behavior**: Different prompts on same PDF now create separate summaries (cache miss)
+- **Upload Form**: Added prompt template selection dropdown with default selection
+
+---
+
 ## [0.2.6] - 2025-11-17
 
 ### Added
