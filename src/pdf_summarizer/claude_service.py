@@ -77,14 +77,13 @@ def validate_claude_model(app):
         return False
 
 
-def summarize_with_claude(text, logger, api_logger):
+def summarize_with_claude(text, logger):
     """
     Summarize text using Anthropic Claude API.
 
     Args:
         text: Text content to summarize
         logger: Application logger instance
-        api_logger: API-specific logger instance
 
     Returns:
         str: Generated summary text
@@ -115,7 +114,7 @@ def summarize_with_claude(text, logger, api_logger):
         )
 
         duration = time.time() - start_time
-        log_api_call(api_logger, "Claude Summarization", duration, success=True)
+        log_api_call(logger, "Claude Summarization", duration, success=True)
 
         # Extract text content from response, filtering for TextBlock types only
         for block in message.content:
@@ -126,6 +125,6 @@ def summarize_with_claude(text, logger, api_logger):
 
     except Exception as e:
         duration = time.time() - start_time
-        log_api_call(api_logger, "Claude Summarization", duration, success=False, error=str(e))
+        log_api_call(logger, "Claude Summarization", duration, success=False, error=str(e))
         logger.error(f"Claude API error: {str(e)}")
         raise Exception(f"Error with Claude API: {str(e)}") from e

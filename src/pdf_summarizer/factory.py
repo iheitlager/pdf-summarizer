@@ -41,14 +41,14 @@ def create_app(config_overrides=None, start_scheduler=True):
                         (default: True, set to False in tests)
 
     Returns:
-        tuple: (app, api_logger) - Flask app instance and API logger
+        Flask: Flask app instance
 
     Example:
         # Production use
-        app, api_logger = create_app()
+        app = create_app()
 
         # Testing use
-        app, api_logger = create_app(
+        app = create_app(
             config_overrides={'TESTING': True, 'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:'},
             start_scheduler=False
         )
@@ -88,13 +88,13 @@ def create_app(config_overrides=None, start_scheduler=True):
     cleanup_scheduler.init_app(app, start=start_scheduler)
 
     # Setup logging
-    api_logger = setup_logging(app)
+    setup_logging(app)
 
     # Register error handlers
     register_error_handlers(app)
 
     # Register routes
-    register_routes(app, api_logger)
+    register_routes(app)
 
     # Create database tables and validate Claude model
     with app.app_context():
@@ -121,4 +121,4 @@ def create_app(config_overrides=None, start_scheduler=True):
         cleanup_scheduler.shutdown()
 
     app.logger.info("Application factory initialized successfully")
-    return app, api_logger
+    return app

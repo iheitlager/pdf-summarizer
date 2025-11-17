@@ -68,13 +68,12 @@ def check_cache(file_hash):
     return None
 
 
-def register_routes(app, api_logger):
+def register_routes(app):
     """
     Register all routes with the Flask application.
 
     Args:
         app: Flask application instance
-        api_logger: Logger instance for API calls
     """
 
     @app.route("/", methods=["GET", "POST"])
@@ -163,7 +162,7 @@ def register_routes(app, api_logger):
                         text, page_count = extract_text_from_pdf(file_path, app.logger)
 
                         # Generate summary with Claude
-                        summary_text = summarize_with_claude(text, app.logger, api_logger)
+                        summary_text = summarize_with_claude(text, app.logger)
 
                         # Create summary record
                         summary = Summary(

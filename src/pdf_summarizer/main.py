@@ -37,7 +37,7 @@ def _initialize_module_globals():
     global app, api_logger, db, limiter, anthropic_client, scheduler
 
     # Create application using factory
-    app, api_logger = create_app(
+    app = create_app(
         start_scheduler=not any("pytest" in arg or "conftest" in arg for arg in sys.argv)
     )
 
@@ -49,6 +49,7 @@ def _initialize_module_globals():
     db = db_ext
     limiter = limiter_ext
     scheduler = cleanup_scheduler.scheduler
+    api_logger = app.logger  # Use app.logger for api_logger
 
     # Get Anthropic client from extension
     if hasattr(app, "extensions") and "anthropic" in app.extensions:

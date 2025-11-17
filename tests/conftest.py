@@ -48,7 +48,7 @@ def app():
     os.makedirs(upload_dir, exist_ok=True)
 
     # Create app using factory with test configuration
-    test_app, test_api_logger = create_app(
+    test_app = create_app(
         config_overrides={
             "TESTING": True,
             "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",  # In-memory database

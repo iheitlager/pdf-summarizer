@@ -157,7 +157,7 @@ class TestSummarizeWithClaude:
         with app.app_context():
             text = "This is a test document with some content."
 
-            summary = summarize_with_claude(text, app.logger, app.logger)
+            summary = summarize_with_claude(text, app.logger)
 
             assert isinstance(summary, str)
             assert len(summary) > 0
@@ -170,7 +170,7 @@ class TestSummarizeWithClaude:
             # Create text longer than 100k characters
             long_text = "x" * 150000
 
-            summarize_with_claude(long_text, app.logger, app.logger)
+            summarize_with_claude(long_text, app.logger)
 
             # Verify API was called with truncated text
             call_args = mock_anthropic.call_args
@@ -187,7 +187,7 @@ class TestSummarizeWithClaude:
             )
 
             with pytest.raises(Exception) as exc_info:
-                summarize_with_claude("test text", app.logger, app.logger)
+                summarize_with_claude("test text", app.logger)
 
             assert "Error with Claude API" in str(exc_info.value)
 
