@@ -70,7 +70,9 @@ def check_cache(file_hash, prompt_template_id=None):
     for upload in uploads:
         if upload.summaries:
             summary = upload.summaries[0]
-            if summary.prompt_template_id == prompt_template_id:
+            # If no prompt_template_id specified, match any cached upload with a summary
+            # Otherwise, match only if prompt template IDs match
+            if prompt_template_id is None or summary.prompt_template_id == prompt_template_id:
                 return upload
 
     return None
@@ -100,12 +102,14 @@ def register_routes(app):
         form.prompt_template.choices = [(p.id, p.name) for p in active_prompts]
 
         # Set default to "Basic Summary" if available
-        if request.method == "GET":
-            default_prompt = next((p for p in active_prompts if p.name == "Basic Summary"), None)
+        default_prompt = next((p for p in active_prompts if p.name == "Basic Summary"), None)
+        if not default_prompt:
+            default_prompt = active_prompts[0] if active_prompts else None
+
+        # Set default value for form
+        if request.method == "GET" or not form.prompt_template.data:
             if default_prompt:
                 form.prompt_template.data = default_prompt.id
-            elif active_prompts:
-                form.prompt_template.data = active_prompts[0].id
 
         if form.validate_on_submit():
             # Get selected prompt template

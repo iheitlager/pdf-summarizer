@@ -35,9 +35,7 @@ class Summary(db.Model):  # type: ignore[name-defined]
 
     id = db.Column(db.Integer, primary_key=True)
     upload_id = db.Column(db.Integer, db.ForeignKey("upload.id"), nullable=False)
-    prompt_template_id = db.Column(
-        db.Integer, db.ForeignKey("prompt_template.id"), nullable=True
-    )
+    prompt_template_id = db.Column(db.Integer, db.ForeignKey("prompt_template.id"), nullable=True)
     summary_text = db.Column(db.Text, nullable=False)
     created_date = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     page_count = db.Column(db.Integer)
