@@ -54,8 +54,19 @@ def create_app(config_overrides=None, start_scheduler=True):
     
     # Load environment variables if not already loaded
     load_dotenv()
-    # Validate configuration
+    # Load CLI args into Config (if any)
     Config.from_cli_args()
+
+    # If test or runtime callers provide overrides, apply them to the Config
+    # class before validation so validation uses the effective values.
+    if config_overrides:
+        for key, value in config_overrides.items():
+            # Only set uppercase config attributes to avoid clobbering
+            # internal or unrelated keys.
+            if isinstance(key, str) and key.isupper():
+                setattr(Config, key, value)
+
+    # Validate configuration after applying overrides
     errors = Config.validate()
     if errors:
         raise ValueError("Configuration validation failed", errors)

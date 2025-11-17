@@ -26,9 +26,7 @@ from reportlab.pdfgen import canvas
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-# Prevent the app module from validating Claude credentials during test imports
-os.environ.setdefault("SKIP_CLAUDE_VALIDATION", "true")
-
+# Note: tests control SKIP_CLAUDE_VALIDATION via config_overrides passed to create_app
 from pdf_summarizer.factory import create_app
 from pdf_summarizer.models import Summary, Upload
 
@@ -57,6 +55,7 @@ def app():
             "SECRET_KEY": "test-secret-key",
             "SERVER_NAME": "localhost.localdomain",
             "SKIP_CLAUDE_VALIDATION": True,
+            "ANTHROPIC_API_KEY": "test-api-key-for-testing",
         },
         start_scheduler=False,  # Don't start scheduler in tests
     )
@@ -347,6 +346,7 @@ def reset_config():
         "SQLALCHEMY_DATABASE_URI": "sqlite:///pdf_summaries.db",
         "UPLOAD_FOLDER": "uploads",
         "ANTHROPIC_API_KEY": None,
+        "SKIP_CLAUDE_VALIDATION": False,
         "CLAUDE_MODEL": "claude-sonnet-4-5-20250929",
         "LOG_LEVEL": "INFO",
         "LOG_DIR": "logs",

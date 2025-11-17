@@ -67,7 +67,9 @@ class Config:
         """
         if args is None:
             parser = cls.create_argument_parser()
-            args = parser.parse_args()
+            # Use parse_known_args so test runners (pytest) or other wrappers
+            # passing extra args don't cause argparse to exit the process.
+            args, _ = parser.parse_known_args()
 
         # Override configuration from CLI args
         if args.host:
@@ -147,6 +149,9 @@ class Config:
         """Validate required configuration values."""
         errors = []
 
+        # Require Anthropic API key by default. Tests that need to skip
+        # this check should set `SKIP_CLAUDE_VALIDATION` on the Config
+        # class (or pass it via `create_app(..., config_overrides=...)`).
         if not cls.ANTHROPIC_API_KEY:
             errors.append(
                 "ANTHROPIC_API_KEY is required. Set it via environment variable or --api-key flag."
