@@ -1,6 +1,6 @@
 # PDF Summarizer
 
-**Version**: 0.3.0 | [Changelog](./CHANGELOG.md)
+**Version**: 0.4.0 | [Changelog](./CHANGELOG.md)
 
 A Flask web application that uploads PDF files and generates AI-powered summaries using Anthropic's Claude API.
 
@@ -11,25 +11,133 @@ Inspiration from [here](https://medium.com/coding-nexus/the-best-ai-coding-setup
 
 ## Features
 
+### Core Features
 - **Multi-file PDF Upload**: Upload multiple PDF files simultaneously (max 10MB each)
 - **AI-Powered Summaries**: Generate concise summaries using Claude 3.5 Sonnet
+- **Prompt Template Management**: CRUD interface for reusable prompt templates
 - **Persistent Storage**: Store PDFs and summaries in a SQLite database
 - **Download Summaries**: Download summaries as text files
 - **Modern UI**: Responsive Bootstrap 5 interface with drag-and-drop support
-- **Security**: CSRF protection, secure filename handling, file type validation
-- **Summary Caching**: SHA256 hash-based deduplication to prevent re-processing identical PDFs
+
+### Performance & Reliability
+- **Summary Caching**: SHA256 hash-based deduplication to prevent re-processing identical PDFs (60% cost reduction)
 - **Session Management**: Persistent user sessions with 30-day lifetime and personalized upload history
 - **Rate Limiting**: Abuse prevention with configurable request limits (10 uploads/hour, 200 requests/day)
 - **Comprehensive Logging**: Structured logging system with rotating file handlers for app, error, and API logs
 - **Automated Cleanup**: Daily background job to automatically delete uploads older than retention period (default: 30 days)
+
+### Security & Deployment
+- **CSRF Protection**: Flask-WTF forms with CSRF tokens
+- **File Validation**: Only PDF files accepted, 10MB limit, secure filename sanitization
+- **Docker Support**: Multi-platform containers (ARM64/AMD64) for local and cloud deployment
+- **Health Checks**: `/health` endpoint for container monitoring
 - **Error Handling**: Custom error pages with user-friendly messages for 404, 429, and 500 errors
 
 ## Prerequisites
 
 - Python 3.13 or higher
 - Anthropic API key ([Get one here](https://console.anthropic.com/))
+- **For Docker**: [Colima](https://github.com/abiosoft/colima) or Docker Desktop
 
-## Installation
+## Deployment Options
+
+You can run PDF Summarizer in two ways:
+1. **Native Python** - Development and local usage
+2. **Docker** - Production deployment (recommended)
+
+## Docker Deployment (Recommended)
+
+### Quick Start with Docker
+
+1. **Install Colima** (Docker Desktop alternative for macOS):
+   ```bash
+   brew install colima docker docker-compose
+   ```
+
+2. **Start Colima**:
+   ```bash
+   make start
+   ```
+
+3. **Configure environment**:
+   ```bash
+   cp .env.docker .env
+   # Edit .env and set ANTHROPIC_API_KEY and SECRET_KEY
+   ```
+
+4. **Build and run**:
+   ```bash
+   make build
+   ```
+
+5. **Access the application**:
+   Open http://localhost:8000
+
+### Docker Commands
+
+```bash
+make start        # Start Colima
+make build        # Build and start container
+make rebuild      # Rebuild without cache
+make run-docker   # Start existing container
+make logs         # View container logs
+make shell        # Open shell in container
+make down         # Stop and remove containers
+make docker-clean # Clean up volumes
+make stop         # Stop Colima and cleanup
+```
+
+### Multi-Platform Support
+
+The Dockerfile supports both ARM64 (Apple Silicon, AWS Graviton) and AMD64 (Intel/AMD, AWS Fargate):
+
+```bash
+# Build for specific platform
+docker buildx build --platform linux/amd64 -t pdf-summarizer:amd64 .
+docker buildx build --platform linux/arm64 -t pdf-summarizer:arm64 .
+
+# Build for multiple platforms
+docker buildx build --platform linux/amd64,linux/arm64 -t pdf-summarizer:latest .
+```
+
+### Docker Environment Variables
+
+See [.env.docker](.env.docker) for a complete template. Key variables:
+
+```bash
+# Required
+ANTHROPIC_API_KEY=your-api-key
+SECRET_KEY=your-secret-key
+
+# Optional (with defaults)
+FLASK_HOST=0.0.0.0
+FLASK_PORT=8000
+DATABASE_URL=sqlite:////app/data/db/pdf_summaries.db
+UPLOAD_FOLDER=/app/uploads
+LOG_DIR=/app/logs
+LOG_LEVEL=INFO
+RETENTION_DAYS=30
+```
+
+### Data Persistence
+
+Docker volumes persist data across container restarts:
+- `./data/db` - SQLite database
+- `./data/uploads` - Uploaded PDF files
+- `./data/logs` - Application logs
+
+### Health Check
+
+The `/health` endpoint provides container status:
+
+```bash
+curl http://localhost:8000/health
+# {"status":"healthy","version":"0.4.0","timestamp":"2025-11-18T...","service":"pdf-summarizer"}
+```
+
+---
+
+## Native Python Installation
 
 1. **Clone or navigate to the project directory**:
    ```bash
@@ -76,7 +184,7 @@ or use my [env.sh](https://github.com/iheitlager/dotfiles/blob/main/bin/env.sh) 
    ```
 
 3. **Open your browser**:
-   Navigate to http://127.0.0.1:5000
+   Navigate to http://127.0.0.1:8000
 
 ### Using the Application
 

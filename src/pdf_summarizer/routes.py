@@ -11,11 +11,13 @@ for the PDF Summarizer application.
 import io
 import time
 import uuid
+from datetime import datetime
 
 from flask import (
     abort,
     current_app,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -441,3 +443,22 @@ def register_routes(app):
             flash(f"Error deleting prompt template: {str(e)}", "error")
 
         return redirect(url_for("prompts_list"))
+
+    @app.route("/health")
+    def health():
+        """
+        Health check endpoint for container monitoring.
+
+        Returns:
+            JSON response with status, version, and timestamp
+        """
+        from pdf_summarizer import __version__
+
+        return jsonify(
+            {
+                "status": "healthy",
+                "version": __version__,
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "service": "pdf-summarizer",
+            }
+        )

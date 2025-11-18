@@ -24,6 +24,7 @@ This document provides essential guidelines and instructions for Claude (AI assi
 3. `CHANGELOG.md` - Top section with version number and date
 
 **Before any version bump:**
+- checkout a new branch, ask for feat or fix
 - Update all three locations with the SAME version number
 - Follow [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH
 - Add changelog entry with date in YYYY-MM-DD format

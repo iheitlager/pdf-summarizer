@@ -364,7 +364,7 @@ def reset_config():
         "LOG_DIR": "logs",
         "RETENTION_DAYS": 30,
         "HOST": "127.0.0.1",
-        "PORT": 5000,
+        "PORT": 8000,
         "DEBUG": False,
         "FLASK_ENV": "production",
     }

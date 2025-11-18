@@ -6,6 +6,7 @@ PYTHON_VERSION := 3.13
 MAIN_MODULE := src/pdf_summarizer/main.py
 
 .PHONY: env install install-dev test help clean run lint format type-check check
+.PHONY: start stop cleanup build rebuild run-docker logs shell down docker-clean
 
 version: ## Show project version
 	@uv run python -c "import pdf_summarizer; print(f'pdf_summarizer version: {pdf_summarizer.__version__}')"
@@ -30,6 +31,7 @@ env: ## Create and populate the development virtual environment
 			echo "No uv.lock found, generating lock file..."; \
 			uv lock; \
 		fi
+	@uv run python -c "import pdf_summarizer; print(f'pdf_summarizer version: {pdf_summarizer.__version__}')"
 	@echo "To activate: source $(VENV)/bin/activate"
 
 settings: ## Create configuration settings .env
@@ -80,6 +82,61 @@ clean: ## Remove virtualenv, artifacts, and caches
 run: ## Launch the Flask application via uv
 	@echo "Starting application..."
 	uv run python -m main
+
+## ===================================
+## Docker/Colima Commands
+## ===================================
+
+start: ## Start Colima if not already running
+	@echo "Starting Colima..."
+	@colima start 2>/dev/null || true
+	@colima status
+
+stop: cleanup ## Stop Colima and clean up
+	@echo "Stopping Colima..."
+	@colima stop
+
+cleanup: ## Clean up Docker resources
+	@echo "Cleaning up Docker resources..."
+	@docker images | grep "localhost:" | awk '{print $$3}' | xargs docker rmi -f 2>/dev/null || true
+	@docker rm -f $$(docker ps -aq) 2>/dev/null || true
+	@docker rmi -f $$(docker images -aq) 2>/dev/null || true
+	@docker volume prune -f 2>/dev/null || true
+	@docker network prune -f 2>/dev/null || true
+	@docker system prune -a -f --volumes 2>/dev/null || true
+	@echo "✓ Docker cleanup completed"
+
+up: ## Build pdf-summarizer container
+	@echo "Building pdf-summarizer container..."
+	@mkdir -p data/db data/uploads data/logs
+	docker-compose -f docker-compose.yml up pdf-summarizer --build -d
+	@echo "✓ Container built and started"
+	@echo "Access the application at http://localhost:8000"
+
+rebuild: ## Force rebuild without cache and restart
+	@echo "Rebuilding pdf-summarizer without cache..."
+	@mkdir -p data/db data/uploads data/logs
+	docker-compose -f docker-compose.yml build --no-cache pdf-summarizer
+	docker-compose -f docker-compose.yml up -d
+	@echo "✓ Container rebuilt and restarted"
+
+logs: ## View container logs
+	@echo "Viewing container logs (Ctrl+C to exit)..."
+	docker-compose -f docker-compose.yml logs -f pdf-summarizer
+
+shell: ## Open shell in running container
+	@echo "Opening shell in pdf-summarizer container..."
+	docker-compose -f docker-compose.yml exec pdf-summarizer /bin/bash
+
+down: ## Stop and remove containers
+	@echo "Stopping containers..."
+	docker-compose -f docker-compose.yml down
+	@echo "✓ Containers stopped and removed"
+
+docker-clean: down ## Stop containers and clean up volumes
+	@echo "Removing Docker volumes..."
+	@rm -rf data/db/* data/uploads/* data/logs/*
+	@echo "✓ Volumes cleaned"
 
 .DEFAULT_GOAL := help
 

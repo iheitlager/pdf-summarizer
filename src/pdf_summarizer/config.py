@@ -63,8 +63,11 @@ class Config:
     CLEANUP_MINUTE = int(os.getenv("CLEANUP_MINUTE", "0"))
 
     # Flask Server Configuration
-    HOST = os.getenv("FLASK_HOST", "127.0.0.1")
-    PORT = int(os.getenv("FLASK_PORT", "5000"))
+    # Default to 0.0.0.0 in Docker containers, 127.0.0.1 otherwise
+    # Check for common container indicators
+    _in_container = os.path.exists("/.dockerenv") or os.getenv("KUBERNETES_SERVICE_HOST")
+    HOST = os.getenv("FLASK_HOST", "0.0.0.0" if _in_container else "127.0.0.1")
+    PORT = int(os.getenv("FLASK_PORT", "8000"))
     DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
     FLASK_ENV = os.getenv("FLASK_ENV", "production")
 
@@ -115,7 +118,7 @@ class Config:
             "--host", type=str, help="Host to bind the server to (default: 127.0.0.1)"
         )
         server_group.add_argument(
-            "--port", "-p", type=int, help="Port to bind the server to (default: 5000)"
+            "--port", "-p", type=int, help="Port to bind the server to (default: 8000)"
         )
         server_group.add_argument("--debug", "-d", action="store_true", help="Enable debug mode")
 

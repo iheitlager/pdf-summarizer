@@ -1,0 +1,33 @@
+# Copyright 2025 Ilja Heitlager
+# SPDX-License-Identifier: Apache-2.0
+
+services:
+  pdf-summarizer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+      target: runtime
+    image: pdf-summarizer:latest
+    container_name: pdf-summarizer
+    platform: linux/arm64  # Change to linux/amd64 for Intel/AMD systems
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/db:/app/data/db
+      - ./data/uploads:/app/uploads
+      - ./data/logs:/app/logs
+    env_file:
+      - .env
+    environment:
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=8000
+      - DATABASE_URL=sqlite:////app/data/db/pdf_summaries.db
+      - UPLOAD_FOLDER=/app/uploads
+      - LOG_DIR=/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
