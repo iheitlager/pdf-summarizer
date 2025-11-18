@@ -20,7 +20,35 @@ from .config import Config
 from .error_handlers import register_error_handlers
 from .extensions import anthropic_ext, cleanup_scheduler, db, limiter, migrate
 from .logging_config import setup_logging
+from .models import PromptTemplate
 from .routes import register_routes
+
+
+def init_default_prompt(app):
+    """
+    Initialize the default prompt template if none exists.
+
+    Creates a "Basic Summary" prompt template on first run to ensure
+    the application has at least one prompt available.
+
+    Args:
+        app: Flask application instance
+    """
+    if PromptTemplate.query.count() == 0:
+        default_prompt = PromptTemplate(
+            name=app.config.get("DEFAULT_PROMPT_NAME", "Basic Summary"),
+            prompt_text=app.config.get(
+                "DEFAULT_PROMPT_TEXT",
+                "Please provide a concise summary of the following document. "
+                "Focus on the main points, key findings, and important details:",
+            ),
+            is_active=True,
+        )
+        db.session.add(default_prompt)
+        db.session.commit()
+        app.logger.info(f"Created default prompt template: {default_prompt.name}")
+    else:
+        app.logger.debug(f"Found {PromptTemplate.query.count()} existing prompt templates")
 
 
 def create_app(config_overrides=None, start_scheduler=True):
@@ -100,6 +128,9 @@ def create_app(config_overrides=None, start_scheduler=True):
     # Create database tables and validate Claude model
     with app.app_context():
         db.create_all()
+
+        # Initialize default prompt template
+        init_default_prompt(app)
 
         if not app.config.get("SKIP_CLAUDE_VALIDATION", False):
             if not validate_claude_model(app):

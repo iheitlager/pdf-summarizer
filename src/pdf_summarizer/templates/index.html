@@ -25,6 +25,18 @@ SPDX-License-Identifier: Apache-2.0
                 <form method="POST" enctype="multipart/form-data" id="uploadForm">
                     {{ form.hidden_tag() }}
 
+                    <!-- Prompt Template Selection -->
+                    <div class="mb-4">
+                        <label for="prompt_template" class="form-label fw-bold">
+                            <i class="bi bi-chat-square-text"></i> Prompt Template
+                        </label>
+                        {{ form.prompt_template(class="form-select", id="prompt_template") }}
+                        <small class="form-text text-muted">
+                            Choose the prompt style for summarization.
+                            <a href="{{ url_for('prompts_list') }}" class="text-decoration-none">Manage prompts</a>
+                        </small>
+                    </div>
+
                     <!-- File Upload Area -->
                     <div class="mb-3">
                         <label for="pdf_files" class="form-label fw-bold">Select PDF Files</label>

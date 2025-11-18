@@ -12,7 +12,7 @@ Tests cover:
 """
 
 from pdf_summarizer.extensions import limiter
-from pdf_summarizer.models import Upload
+from pdf_summarizer.models import PromptTemplate, Upload
 from tests import _create_sample_pdf
 
 
@@ -22,11 +22,14 @@ class TestCompleteUploadWorkflow:
     def test_full_upload_process_view_download_flow(self, client, app, db, mock_anthropic):
         """Should complete full workflow: upload → process → view → download."""
         with app.app_context():
+            # Get default prompt template
+            prompt = PromptTemplate.query.filter_by(name="Basic Summary").first()
+
             # 1. Upload PDF
             pdf = _create_sample_pdf()
             response = client.post(
                 "/",
-                data={"pdf_files": (pdf, "test.pdf")},
+                data={"pdf_files": (pdf, "test.pdf"), "prompt_template": str(prompt.id)},
                 content_type="multipart/form-data",
                 follow_redirects=False,
             )
@@ -53,12 +56,18 @@ class TestCompleteUploadWorkflow:
     def test_multi_file_upload_workflow(self, client, app, db, mock_anthropic):
         """Should handle multiple file upload workflow."""
         with app.app_context():
+            # Get default prompt template
+            prompt = PromptTemplate.query.filter_by(name="Basic Summary").first()
+
             pdf1 = _create_sample_pdf()
             pdf2 = _create_sample_pdf()
 
             response = client.post(
                 "/",
-                data={"pdf_files": [(pdf1, "test1.pdf"), (pdf2, "test2.pdf")]},
+                data={
+                    "pdf_files": [(pdf1, "test1.pdf"), (pdf2, "test2.pdf")],
+                    "prompt_template": str(prompt.id),
+                },
                 content_type="multipart/form-data",
                 follow_redirects=False,
             )
@@ -75,6 +84,9 @@ class TestCompleteUploadWorkflow:
     def test_cache_workflow_same_file_twice(self, client, app, db, mock_anthropic, mocker):
         """Should use cache when same file uploaded twice."""
         with app.app_context():
+            # Get default prompt template
+            prompt = PromptTemplate.query.filter_by(name="Basic Summary").first()
+
             # Mock file hash to return consistent value
             test_hash = "consistent_hash_123"
             mocker.patch("pdf_summarizer.routes.calculate_file_hash", return_value=test_hash)
@@ -83,7 +95,7 @@ class TestCompleteUploadWorkflow:
             pdf1 = _create_sample_pdf()
             client.post(
                 "/",
-                data={"pdf_files": (pdf1, "first.pdf")},
+                data={"pdf_files": (pdf1, "first.pdf"), "prompt_template": str(prompt.id)},
                 content_type="multipart/form-data",
             )
 
@@ -91,7 +103,7 @@ class TestCompleteUploadWorkflow:
             pdf2 = _create_sample_pdf()
             client.post(
                 "/",
-                data={"pdf_files": (pdf2, "second.pdf")},
+                data={"pdf_files": (pdf2, "second.pdf"), "prompt_template": str(prompt.id)},
                 content_type="multipart/form-data",
             )
 
@@ -110,6 +122,9 @@ class TestConcurrentUserScenarios:
     def test_concurrent_uploads_from_different_sessions(self, app, db, mock_anthropic):
         """Should handle uploads from different sessions concurrently."""
         with app.app_context():
+            # Get default prompt template
+            prompt = PromptTemplate.query.filter_by(name="Basic Summary").first()
+
             client1 = app.test_client()
             client1_limiter = limiter
             client1_limiter.enabled = False
@@ -121,14 +136,14 @@ class TestConcurrentUserScenarios:
             pdf1 = _create_sample_pdf()
             response1 = client1.post(
                 "/",
-                data={"pdf_files": (pdf1, "user1.pdf")},
+                data={"pdf_files": (pdf1, "user1.pdf"), "prompt_template": str(prompt.id)},
                 content_type="multipart/form-data",
             )
 
             pdf2 = _create_sample_pdf()
             response2 = client2.post(
                 "/",
-                data={"pdf_files": (pdf2, "user2.pdf")},
+                data={"pdf_files": (pdf2, "user2.pdf"), "prompt_template": str(prompt.id)},
                 content_type="multipart/form-data",
             )
 
@@ -144,6 +159,9 @@ class TestConcurrentUserScenarios:
     def test_my_uploads_shows_only_user_files(self, app, db, mock_anthropic):
         """Should show only current user's uploads in My Uploads."""
         with app.app_context():
+            # Get default prompt template
+            prompt = PromptTemplate.query.filter_by(name="Basic Summary").first()
+
             client1 = app.test_client()
             client1_limiter = limiter
             client1_limiter.enabled = False
@@ -156,7 +174,7 @@ class TestConcurrentUserScenarios:
             pdf1 = _create_sample_pdf()
             client1.post(
                 "/",
-                data={"pdf_files": (pdf1, "user1.pdf")},
+                data={"pdf_files": (pdf1, "user1.pdf"), "prompt_template": str(prompt.id)},
                 content_type="multipart/form-data",
             )
 
@@ -164,7 +182,7 @@ class TestConcurrentUserScenarios:
             pdf2 = _create_sample_pdf()
             client2.post(
                 "/",
-                data={"pdf_files": (pdf2, "user2.pdf")},
+                data={"pdf_files": (pdf2, "user2.pdf"), "prompt_template": str(prompt.id)},
                 content_type="multipart/form-data",
             )
 
@@ -185,6 +203,9 @@ class TestErrorRecovery:
     def test_recovery_from_failed_upload(self, client, app, db, mock_anthropic, mocker):
         """Should handle failed upload and allow retry."""
         with app.app_context():
+            # Get default prompt template
+            prompt = PromptTemplate.query.filter_by(name="Basic Summary").first()
+
             # First attempt fails
             mocker.patch(
                 "pdf_summarizer.routes.summarize_with_claude", side_effect=Exception("API Error")
@@ -193,7 +214,7 @@ class TestErrorRecovery:
             pdf1 = _create_sample_pdf()
             response1 = client.post(
                 "/",
-                data={"pdf_files": (pdf1, "test.pdf")},
+                data={"pdf_files": (pdf1, "test.pdf"), "prompt_template": str(prompt.id)},
                 content_type="multipart/form-data",
                 follow_redirects=True,
             )
@@ -209,7 +230,7 @@ class TestErrorRecovery:
             pdf2 = _create_sample_pdf()
             response2 = client.post(
                 "/",
-                data={"pdf_files": (pdf2, "test.pdf")},
+                data={"pdf_files": (pdf2, "test.pdf"), "prompt_template": str(prompt.id)},
                 content_type="multipart/form-data",
                 follow_redirects=False,
             )
@@ -222,11 +243,14 @@ class TestErrorRecovery:
     ):
         """Should maintain database integrity across multiple operations."""
         with app.app_context():
+            # Get default prompt template
+            prompt = PromptTemplate.query.filter_by(name="Basic Summary").first()
+
             # Upload
             sample_pdf.seek(0)
             client.post(
                 "/",
-                data={"pdf_files": (sample_pdf, "test.pdf")},
+                data={"pdf_files": (sample_pdf, "test.pdf"), "prompt_template": str(prompt.id)},
                 content_type="multipart/form-data",
             )
 

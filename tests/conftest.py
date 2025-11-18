@@ -27,8 +27,8 @@ from reportlab.pdfgen import canvas
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 # Note: tests control SKIP_CLAUDE_VALIDATION via config_overrides passed to create_app
-from pdf_summarizer.factory import create_app
-from pdf_summarizer.models import Summary, Upload
+from pdf_summarizer.factory import create_app, init_default_prompt
+from pdf_summarizer.models import PromptTemplate, Summary, Upload
 
 
 @pytest.fixture(scope="session")
@@ -96,6 +96,8 @@ def reset_database(db, app):
         db.session.remove()
         db.drop_all()
         db.create_all()
+        # Initialize default prompt template after creating tables
+        init_default_prompt(app)
         yield db
         # Clean up after test
         db.session.remove()
@@ -249,8 +251,11 @@ def sample_upload(db, app):
 def sample_summary(db, app, sample_upload):
     """Create a sample Summary record in the database."""
     with app.app_context():
+        # Get default prompt template
+        prompt = PromptTemplate.query.filter_by(name="Basic Summary").first()
         summary = Summary(
             upload_id=sample_upload.id,
+            prompt_template_id=prompt.id if prompt else None,
             summary_text="This is a test summary.",
             page_count=1,
             char_count=100,
@@ -269,6 +274,9 @@ def sample_summary(db, app, sample_upload):
 def cached_upload(db, app):
     """Create a cached Upload with Summary for cache testing."""
     with app.app_context():
+        # Get default prompt template
+        prompt = PromptTemplate.query.filter_by(name="Basic Summary").first()
+
         upload = Upload(
             filename="cached_20231116_120000.pdf",
             original_filename="cached.pdf",
@@ -282,7 +290,11 @@ def cached_upload(db, app):
         db.session.flush()
 
         summary = Summary(
-            upload_id=upload.id, summary_text="Cached summary text.", page_count=2, char_count=200
+            upload_id=upload.id,
+            prompt_template_id=prompt.id if prompt else None,
+            summary_text="Cached summary text.",
+            page_count=2,
+            char_count=200,
         )
         db.session.add(summary)
         db.session.commit()
@@ -366,3 +378,28 @@ def reset_config():
     # Reset AFTER test runs
     for key, value in default_values.items():
         setattr(Config, key, value)
+
+
+@pytest.fixture
+def default_prompt(db, app):
+    """Get the default prompt template."""
+    with app.app_context():
+        return PromptTemplate.query.filter_by(name="Basic Summary").first()
+
+
+@pytest.fixture
+def test_prompt(db, app):
+    """Create a test prompt template."""
+    with app.app_context():
+        prompt = PromptTemplate(
+            name="Test Prompt",
+            prompt_text="Test prompt for testing purposes.",
+            is_active=True,
+        )
+        db.session.add(prompt)
+        db.session.commit()
+        prompt_id = prompt.id
+        db.session.expunge_all()
+
+    with app.app_context():
+        return db.session.get(PromptTemplate, prompt_id)

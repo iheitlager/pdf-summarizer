@@ -1,0 +1,113 @@
+<!--
+Copyright 2025 Ilja Heitlager
+SPDX-License-Identifier: Apache-2.0
+-->
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - PDF Summarizer{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-chat-square-text"></i> {{ title }}</h2>
+            <a href="{{ url_for('prompts_list') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" id="promptForm">
+                    {{ form.hidden_tag() }}
+
+                    <!-- Name Field -->
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="e.g., Basic Summary, Detailed Analysis, Executive Summary") }}
+                        {% if form.name.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.name.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">
+                            A unique name to identify this prompt template.
+                        </small>
+                    </div>
+
+                    <!-- Prompt Text Field -->
+                    <div class="mb-3">
+                        {{ form.prompt_text.label(class="form-label") }}
+                        {{ form.prompt_text(class="form-control font-monospace" + (" is-invalid" if form.prompt_text.errors else ""), id="promptText") }}
+                        {% if form.prompt_text.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.prompt_text.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="d-flex justify-content-between mt-1">
+                            <small class="form-text text-muted">
+                                The prompt text to send to Claude. The document content will be appended automatically.
+                            </small>
+                            <small class="text-muted" id="charCount">0 / 5000 characters</small>
+                        </div>
+                    </div>
+
+                    <!-- Active Checkbox -->
+                    <div class="mb-4">
+                        <div class="form-check">
+                            {{ form.is_active(class="form-check-input") }}
+                            {{ form.is_active.label(class="form-check-label") }}
+                        </div>
+                        <small class="form-text text-muted">
+                            Only active prompts will be available for selection when uploading PDFs.
+                        </small>
+                    </div>
+
+                    <!-- Preview Section -->
+                    {% if prompt %}
+                    <div class="mb-4">
+                        <h5 class="mb-3"><i class="bi bi-eye"></i> Current Prompt</h5>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <pre class="mb-0" style="white-space: pre-wrap; font-size: 0.9rem;">{{ prompt.prompt_text }}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Submit Button -->
+                    <div class="d-grid gap-2">
+                        {{ form.submit(class="btn btn-primary btn-lg") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Character counter for prompt text
+    document.addEventListener('DOMContentLoaded', function() {
+        const promptText = document.getElementById('promptText');
+        const charCount = document.getElementById('charCount');
+
+        function updateCharCount() {
+            const count = promptText.value.length;
+            charCount.textContent = `${count} / 5000 characters`;
+
+            if (count > 5000) {
+                charCount.classList.add('text-danger');
+                charCount.classList.remove('text-muted');
+            } else {
+                charCount.classList.add('text-muted');
+                charCount.classList.remove('text-danger');
+            }
+        }
+
+        promptText.addEventListener('input', updateCharCount);
+        updateCharCount(); // Initial count
+    });
+</script>
+{% endblock %}

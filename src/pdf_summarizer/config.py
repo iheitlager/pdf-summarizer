@@ -38,6 +38,13 @@ class Config:
     MAX_TOKENS = int(os.getenv("MAX_TOKENS", "1024"))
     MAX_TEXT_LENGTH = int(os.getenv("MAX_TEXT_LENGTH", "100000"))
 
+    # Prompt Template Configuration
+    DEFAULT_PROMPT_NAME = "Basic Summary"
+    DEFAULT_PROMPT_TEXT = (
+        "Please provide a concise summary of the following document. "
+        "Focus on the main points, key findings, and important details:"
+    )
+
     # Rate Limiting Configuration
     RATE_LIMIT_ENABLED = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
     RATE_LIMIT_STORAGE_URI = os.getenv("REDIS_URL", "memory://")
