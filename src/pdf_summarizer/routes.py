@@ -97,7 +97,13 @@ def register_routes(app):
         active_prompts = PromptTemplate.query.filter_by(is_active=True).all()
         if not active_prompts:
             flash("No active prompt templates available. Please create one.", "error")
-            return redirect(url_for("prompts_list"))
+            return render_template(
+                "index.html",
+                form=form,
+                recent_uploads=[],
+                no_active_prompts=True,
+                create_prompt_url=url_for("prompts_list"),
+            )
 
         form.prompt_template.choices = [(p.id, p.name) for p in active_prompts]
 
