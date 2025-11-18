@@ -458,7 +458,7 @@ def register_routes(app):
             {
                 "status": "healthy",
                 "version": __version__,
-                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "timestamp": datetime.now().isoformat().replace("+00:00", "Z"),
                 "service": "pdf-summarizer",
             }
         )

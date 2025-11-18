@@ -38,7 +38,6 @@ RUN pip install --no-cache-dir uv
 # Copy dependency files and source code first (for layer caching)
 COPY pyproject.toml README.md ./
 COPY src/ ./src/
-COPY main.py ./
 
 # Install dependencies using uv
 # --system flag installs to system Python (no venv needed in container)
@@ -67,9 +66,6 @@ RUN useradd --create-home --shell /bin/bash appuser && \
 
 # Switch to non-root user
 USER appuser
-
-# Create directories with proper permissions
-RUN mkdir -p /app/data/db /app/uploads /app/logs
 
 # Expose Flask port
 EXPOSE 8000
