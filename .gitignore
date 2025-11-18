@@ -33,7 +33,6 @@ htmlcov/
 
 # Virtual Environment
 .venv/
-uv.lock
 .python-version
 logs/
 
