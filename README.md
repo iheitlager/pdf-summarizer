@@ -200,17 +200,26 @@ or use my [env.sh](https://github.com/iheitlager/dotfiles/blob/main/bin/env.sh) 
 
 ## Project Structure
 ```
+```
 .
 ├── src/pdf_summarizer/         # Main application code
 │   ├── main.py                 # Flask application entry point
 │   ├── config.py               # Centralized configuration
 │   ├── templates/              # HTML templates
 │   └── static/                 # CSS, JS, assets
+├── docker/                     # Docker configuration
+│   └── Dockerfile.dev          # Development container image
 ├── tests/                      # Test suite (90%+ coverage)
 ├── docs/                       # Documentation
 │   ├── database.md             # Database schema reference
 │   └── adr/                    # Architecture Decision Records
+├── data/                       # Docker volumes (persisted)
+│   ├── db/                     # SQLite database
+│   ├── uploads/                # Uploaded PDF files
+│   └── logs/                   # Application logs
+├── .env.docker                 # Docker environment template
 ├── pyproject.toml              # Dependencies and config
+├── docker-compose.yml          # Docker orchestration
 ├── Makefile                    # Build automation
 ├── CLAUDE.md                   # Developer guidelines
 ├── CHANGELOG.md                # Version history

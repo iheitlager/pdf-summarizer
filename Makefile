@@ -25,8 +25,9 @@ env: ## Create and populate the development virtual environment
 	@echo "✓ Virtual environment created at $(VENV)/"
 	@uv sync  > /dev/null
 	@uv sync --group dev  > /dev/null
-	@mkdir -p logs
-	@mkdir -p uploads
+	@mkdir -p data/logs
+	@mkdir -p data/uploads
+	@mkdir -p data/db
 	@if [ ! -f uv.lock ]; then \
 			echo "No uv.lock found, generating lock file..."; \
 			uv lock; \
@@ -67,9 +68,9 @@ type-check: ## Run mypy type checks
 clean: ## Remove virtualenv, artifacts, and caches
 	@echo "Cleaning up..."
 	@rm -rf $(VENV)
-	@rm -rf logs
-	@rm -rf uploads/
-	@rm -rf instance/
+	@rm -rf data/logs/
+	@rm -rf data/uploads/
+	@rm -rf data/db/
 	@find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name .mypy_cache -exec rm -rf {} + 2>/dev/null || true

@@ -19,13 +19,13 @@ class Config:
 
     # Flask Configuration
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///pdf_summaries.db")
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///../../data/db/pdf_summaries.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     MAX_CONTENT_LENGTH = int(os.getenv("MAX_FILE_SIZE_MB", "10")) * 1024 * 1024
     PERMANENT_SESSION_LIFETIME = timedelta(days=int(os.getenv("SESSION_LIFETIME_DAYS", "30")))
 
     # Upload Configuration
-    UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "uploads")
+    UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "data/uploads")
 
     # Anthropic API Configuration
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
@@ -53,7 +53,7 @@ class Config:
 
     # Logging Configuration
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-    LOG_DIR = os.getenv("LOG_DIR", "logs")
+    LOG_DIR = os.getenv("LOG_DIR", "data/logs")
     LOG_MAX_BYTES = int(os.getenv("LOG_MAX_BYTES", str(10 * 1024 * 1024)))  # 10MB
     LOG_BACKUP_COUNT = int(os.getenv("LOG_BACKUP_COUNT", "5"))
 
