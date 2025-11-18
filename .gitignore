@@ -1,4 +1,6 @@
+# application
 data/
+.ssl-certs/
 
 # Python
 __pycache__/

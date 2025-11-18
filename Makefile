@@ -4,6 +4,7 @@
 VENV := .venv
 PYTHON_VERSION := 3.13
 MAIN_MODULE := src/pdf_summarizer/main.py
+LOCAL_DOMAIN := pdf-summarizer.local
 
 .PHONY: env install install-dev test help clean run lint format type-check check
 .PHONY: start stop cleanup build rebuild run-docker logs shell down docker-clean
@@ -34,6 +35,7 @@ env: ## Create and populate the development virtual environment
 		fi
 	@uv run python -c "import pdf_summarizer; print(f'pdf_summarizer version: {pdf_summarizer.__version__}')"
 	@echo "To activate: source $(VENV)/bin/activate"
+
 
 settings: ## Create configuration settings .env
 	@echo "Creating settings"
@@ -71,6 +73,7 @@ clean: ## Remove virtualenv, artifacts, and caches
 	@rm -rf data/logs/
 	@rm -rf data/uploads/
 	@rm -rf data/db/
+	@rm -rf .ssl-certs/
 	@find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name .mypy_cache -exec rm -rf {} + 2>/dev/null || true
@@ -97,6 +100,14 @@ stop: cleanup ## Stop Colima and clean up
 	@echo "Stopping Colima..."
 	@colima stop
 
+.ssl-certs/nginx.crt: # Create self-signed SSL certificates
+	@mkdir -p .ssl-certs
+	@mkcert -key-file .ssl-certs/nginx.key -cert-file .ssl-certs/nginx.crt \
+		$(LOCAL_DOMAIN) \
+		localhost \
+		127.0.0.1 \
+		*.$(LOCAL_DOMAIN)
+
 cleanup: ## Clean up Docker resources
 	@echo "Cleaning up Docker resources..."
 	@docker images | grep "localhost:" | awk '{print $$3}' | xargs docker rmi -f 2>/dev/null || true
@@ -107,23 +118,26 @@ cleanup: ## Clean up Docker resources
 	@docker system prune -a -f --volumes 2>/dev/null || true
 	@echo "✓ Docker cleanup completed"
 
-up: ## Build pdf-summarizer container
+up: .ssl-certs/nginx.crt ## Build pdf-summarizer container
 	@echo "Building pdf-summarizer container..."
+	@if ! grep -q "$(LOCAL_DOMAIN)" /etc/hosts; then \
+		echo "127.0.0.1 $(LOCAL_DOMAIN)" | sudo tee -a /etc/hosts; \
+	fi
 	@mkdir -p data/db data/uploads data/logs
-	docker-compose -f docker-compose.yml up pdf-summarizer --build -d
+	docker-compose -f docker-compose.yml up  --build -d
 	@echo "✓ Container built and started"
 	@echo "Access the application at http://localhost:8000"
 
 rebuild: ## Force rebuild without cache and restart
 	@echo "Rebuilding pdf-summarizer without cache..."
 	@mkdir -p data/db data/uploads data/logs
-	docker-compose -f docker-compose.yml build --no-cache pdf-summarizer
+	docker-compose -f docker-compose.yml build --no-cache pdf-summarizer-1 pdf-summarizer-1
 	docker-compose -f docker-compose.yml up -d
 	@echo "✓ Container rebuilt and restarted"
 
 logs: ## View container logs
 	@echo "Viewing container logs (Ctrl+C to exit)..."
-	docker-compose -f docker-compose.yml logs -f pdf-summarizer
+	docker-compose -f docker-compose.yml logs -f
 
 shell: ## Open shell in running container
 	@echo "Opening shell in pdf-summarizer container..."
