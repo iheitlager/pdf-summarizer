@@ -84,3 +84,8 @@ htmlcov/
 *.egg
 dist/
 build/
+
+# SBOM & Security
+sbom*.json
+security-report.json
+requirements.txt

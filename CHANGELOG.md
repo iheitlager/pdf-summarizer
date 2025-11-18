@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] - 2025-01-18
+
+### Added
+- **SBOM Generation**: Software Bill of Materials generation using CycloneDX format with `cyclonedx-bom`
+- **Security Scanning**: Automated vulnerability scanning with `pip-audit` from PyPA
+- **Makefile Targets**: New `make sbom`, `make audit`, and `make sbom-check` commands
+- **GitHub Actions**: New `.github/workflows/sbom-check.yml` for automated SBOM generation and security audits
+- **CI/CD Integration**: Added security audit step to PR checks workflow
+- **Documentation**: ADR-0014 documenting SBOM implementation decisions
+- **Development Dependencies**: Added `cyclonedx-bom>=4.0.0` and `pip-audit>=2.6.0`
+
+### Changed
+- Updated `.gitignore` to exclude SBOM artifacts and temporary requirements files
+
+---
+
 ## [0.4.1] - 2025-11-18
 
 ### Changed

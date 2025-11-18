@@ -26,6 +26,8 @@ dev = [
     "mypy>=1.8.0",
     "reportlab>=4.0.0",
     "ruff>=0.14.5",
+    "cyclonedx-bom>=4.0.0",
+    "pip-audit>=2.6.0",
 ]
 
 [project.scripts]
