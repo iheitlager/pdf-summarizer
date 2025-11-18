@@ -1,8 +1,8 @@
 # ADR-0011: Multi-File Logging Strategy
 
-**Status**: Accepted
+**Status**: Accepted (Updated 2025-11-18)
 
-**Date**: 2025-11-16
+**Date**: 2025-11-16 | **Last Updated**: 2025-11-18
 
 **Technical Story**: Application observability and debugging
 
@@ -26,34 +26,38 @@ Key requirements:
 
 ## Decision
 
-Implement a **multi-file logging strategy** with separate log files for different concerns, using Python's `RotatingFileHandler` for automatic log rotation.
+Implement a **dual-file logging strategy** with Flask's built-in `app.logger` as the single logging source, using Python's `RotatingFileHandler` for automatic log rotation.
 
 ### Log Files
-1. **app.log**: General application logs (all levels)
+1. **app.log**: General application logs (all levels including API calls)
 2. **error.log**: Error-level logs only (quick error identification)
-3. **api.log**: External API calls to Claude (cost tracking)
+
+**Note**: The original design included `api.log` for separate API call tracking, but this was removed in v0.4.1 as it was never actually implemented and added unnecessary complexity. API calls are logged to `app.log` with structured formatting.
 
 ### Features
 - **Rotating handlers**: 10MB max file size, 5 backup files (50MB total per log)
 - **Structured formatting**: Timestamp, level, module, function, message
 - **Console output**: Development mode logs to console
 - **Configurable levels**: LOG_LEVEL environment variable
-- **Named loggers**: Separate logger for API calls (`logging.getLogger("api")`)
+- **Single logger source**: All logging through Flask's `app.logger` or `current_app.logger`
+- **Helper functions**: Structured logging helpers that internally use `current_app.logger`
 
 ### Implementation
 ```python
 # logs/
-#   app.log        - General application logs
+#   app.log        - General application logs (including API calls)
 #   app.log.1      - Rotated backup
 #   error.log      - Errors only
-#   api.log        - Claude API calls
 
 # Setup logging
 from logging.handlers import RotatingFileHandler
 
 app_handler = RotatingFileHandler('logs/app.log', maxBytes=10MB, backupCount=5)
 error_handler = RotatingFileHandler('logs/error.log', maxBytes=10MB, backupCount=5)
-api_handler = RotatingFileHandler('logs/api.log', maxBytes=10MB, backupCount=5)
+
+# All handlers attached to app.logger
+app.logger.addHandler(app_handler)
+app.logger.addHandler(error_handler)
 ```
 
 ## Alternatives Considered
@@ -144,19 +148,20 @@ api_handler = RotatingFileHandler('logs/api.log', maxBytes=10MB, backupCount=5)
 
 ### Positive Consequences
 - **Quick error identification**: Check error.log for problems (no noise)
-- **Cost tracking**: api.log shows all Claude API calls with latency
+- **Cost tracking**: app.log shows all Claude API calls with structured formatting
 - **Performance debugging**: app.log shows request flow and timing
 - **Automatic rotation**: Logs don't fill disk (50MB limit per log type)
-- **Separation of concerns**: Different logs for different purposes
+- **Separation of concerns**: Errors separated for quick identification
 - **Easy grep/tail**: Standard text files work with Unix tools
 - **No external dependencies**: Built-in Python logging
+- **Simple architecture**: Single logger source (`app.logger`) for entire application
+- **Consistent patterns**: All helper functions use `current_app.logger` internally
 
 ### Negative Consequences
-- **Multiple files to check**: Must look in 2-3 files for full picture
-- **No cross-file correlation**: Timestamp matching required
-- **Disk space**: 150MB total (3 logs × 50MB) vs single file
-- **More complex setup**: Three handlers instead of one
-- **Log aggregation**: Harder to view chronological order across files
+- **Multiple files to check**: Must look in 2 files for full picture
+- **No cross-file correlation**: Timestamp matching required (though error.log duplicates app.log errors)
+- **Disk space**: 100MB total (2 logs × 50MB) vs single file
+- **More complex setup**: Two handlers instead of one
 
 ### Neutral Consequences
 - **Manual monitoring**: No automated alerts (use external tools if needed)
@@ -168,21 +173,20 @@ api_handler = RotatingFileHandler('logs/api.log', maxBytes=10MB, backupCount=5)
 ### Directory Structure
 ```
 logs/
-├── app.log           # Current general logs
+├── app.log           # Current general logs (includes API calls)
 ├── app.log.1         # Rotated backup (most recent)
 ├── app.log.2         # Older backup
 ├── ...
 ├── app.log.5         # Oldest backup
 ├── error.log         # Current error logs
-├── error.log.1-5     # Error log backups
-├── api.log           # Current API logs
-└── api.log.1-5       # API log backups
+└── error.log.1-5     # Error log backups
 ```
 
 ### Logging Configuration
 ```python
 # src/pdf_summarizer/logging_config.py
 from logging.handlers import RotatingFileHandler
+from flask import current_app
 
 def setup_logging(app):
     # App handler - all logs
@@ -192,41 +196,49 @@ def setup_logging(app):
         backupCount=5                # Keep 5 backups
     )
     app_handler.setFormatter(
-        logging.Formatter('[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
+        logging.Formatter('[%(asctime)s] %(levelname)s in %(module)s (%(funcName)s): %(message)s')
     )
 
     # Error handler - errors only
     error_handler = RotatingFileHandler('logs/error.log', maxBytes=10MB, backupCount=5)
     error_handler.setLevel(logging.ERROR)
 
-    # API handler - external API calls
-    api_logger = logging.getLogger('api')
-    api_handler = RotatingFileHandler('logs/api.log', maxBytes=10MB, backupCount=5)
-    api_logger.addHandler(api_handler)
-    api_logger.propagate = False  # Don't duplicate in app.log
+    # Console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG if app.debug else logging.INFO)
+
+    # All handlers attached to app.logger
+    app.logger.addHandler(app_handler)
+    app.logger.addHandler(error_handler)
+    app.logger.addHandler(console_handler)
 ```
 
 ### Logging Usage
 ```python
-# General application log
-app.logger.info("Upload successful")
-app.logger.error("Failed to process PDF", exc_info=True)
+# Direct logging
+from flask import current_app
 
-# API call log
-api_logger = logging.getLogger('api')
-api_logger.info(f"Claude API call: {duration:.2f}s | {input_tokens} tokens | ${cost:.4f}")
+current_app.logger.info("Upload successful")
+current_app.logger.error("Failed to process PDF", exc_info=True)
 
-# Cache events
-app.logger.info(f"Cache HIT: {file_hash[:16]}...")
-app.logger.info(f"Cache MISS: {file_hash[:16]}...")
+# Using helper functions (recommended for structured logging)
+from pdf_summarizer.logging_config import (
+    log_upload, log_processing, log_api_call,
+    log_cache_hit, log_cache_miss, log_cleanup
+)
 
-# Cleanup
-app.logger.info(f"Cleanup: deleted {count} files, freed {size_mb:.2f}MB")
+# Helper functions internally use current_app.logger - no logger parameter needed!
+log_upload(filename, file_size, session_id)
+log_processing(filename, pages, chars, duration)
+log_api_call("Claude Summarization", duration, success=True)
+log_cache_hit(file_hash)
+log_cache_miss(file_hash)
+log_cleanup(deleted_count, freed_space_mb)
 ```
 
 ### Code Locations
 - Logging setup: [src/pdf_summarizer/logging_config.py](../../src/pdf_summarizer/logging_config.py)
-- Helper functions: [src/pdf_summarizer/logging_config.py:92-140](../../src/pdf_summarizer/logging_config.py#L92-L140)
+- Helper functions: [src/pdf_summarizer/logging_config.py:81-132](../../src/pdf_summarizer/logging_config.py#L81-L132)
 - Configuration: [src/pdf_summarizer/config.py:42-46](../../src/pdf_summarizer/config.py#L42-L46)
 
 ### Configuration
@@ -248,10 +260,10 @@ Traceback (most recent call last):
   ...
 ```
 
-### Simple Format (api.log)
+### API Call Format (in app.log)
 ```
-[2025-11-16 14:32:16,789] INFO: API Call: summarize | Duration: 3.42s | Status: SUCCESS
-[2025-11-16 14:32:20,123] INFO: API Call: summarize | Duration: 2.18s | Status: SUCCESS
+[2025-11-18 14:32:16] INFO in logging_config (log_api_call): API Call: Claude Summarization | Duration: 3.42s | Status: SUCCESS
+[2025-11-18 14:32:20] INFO in logging_config (log_api_call): API Call: Claude Summarization | Duration: 2.18s | Status: SUCCESS
 ```
 
 ### Console Format (development)
@@ -302,22 +314,24 @@ tail -f logs/app.log
 # Watch for errors
 tail -f logs/error.log
 
-# Monitor API calls
-tail -f logs/api.log
+# Monitor API calls (in app.log)
+grep "API Call" logs/app.log | tail -f
 
 # Search for specific event
 grep "Cache HIT" logs/app.log
-grep "FAILED" logs/api.log
+grep "FAILED" logs/app.log
 ```
 
 ### Cost Tracking
 ```bash
 # Count API calls today
-grep "$(date +%Y-%m-%d)" logs/api.log | wc -l
+grep "$(date +%Y-%m-%d)" logs/app.log | grep "API Call" | wc -l
+
+# Count successful API calls
+grep "API Call" logs/app.log | grep SUCCESS | wc -l
 
 # Calculate total API cost (estimate)
-grep "API Call" logs/api.log | grep SUCCESS | wc -l
-# Multiply by ~$0.05 average cost per call
+# Multiply count by ~$0.05 average cost per call
 ```
 
 ### Error Analysis
@@ -334,7 +348,7 @@ grep "ERROR" logs/error.log | cut -d':' -f3 | sort | uniq -c | sort -rn
 ### Rotation Behavior
 - **Size-based rotation**: When log reaches 10MB, rotate to .1
 - **Backup count**: Keep 5 backups (oldest deleted automatically)
-- **Total size**: 60MB per log type (10MB current + 5×10MB backups)
+- **Total size**: 100MB total across both logs (60MB for app.log + 60MB for error.log, but error.log is typically much smaller)
 - **Automatic**: No cron job or manual intervention needed
 
 ### Manual Rotation
@@ -362,6 +376,31 @@ rm logs/*.log.[1-5]
 - [RotatingFileHandler](https://docs.python.org/3/library/logging.handlers.html#rotatingfilehandler)
 - [Flask Logging](https://flask.palletsprojects.com/en/3.0.x/logging/)
 - [Logging Best Practices](https://docs.python-guide.org/writing/logging/)
+
+## Updates and Revisions
+
+### Version 0.4.1 (2025-11-18): Logging Harmonization
+
+**Changes Made**:
+- **Removed `api.log` file**: Originally planned but never implemented; added unnecessary complexity
+- **Simplified to dual-file strategy**: Only `app.log` (all logs) and `error.log` (errors only)
+- **Removed logger parameters**: All helper functions now use `current_app.logger` internally
+  - `log_upload(filename, size, session)` - no logger param
+  - `log_processing(filename, pages, chars, duration)` - no logger param
+  - `log_api_call(operation, duration, success, error)` - no logger param
+  - `log_cache_hit(file_hash)` - no logger param
+  - `log_cache_miss(file_hash)` - no logger param
+  - `log_cleanup(deleted_count, freed_space_mb)` - no logger param
+  - `log_error_with_context(error, context)` - no logger param
+- **Single logger source**: All code uses `app.logger` or `current_app.logger` exclusively
+- **Consistent architecture**: No named loggers, no logger passing, single pattern throughout
+
+**Rationale**:
+- Simpler API: Functions don't need logger passed as argument
+- Less complexity: Two log files instead of three
+- Consistent: Single pattern used everywhere in codebase
+- Easier to maintain: One logger source to manage
+- Cleaner code: Helper functions are simpler to use
 
 ## Related ADRs
 
