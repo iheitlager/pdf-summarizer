@@ -46,7 +46,11 @@ class Config:
     )
 
     # Rate Limiting Configuration
-    RATE_LIMIT_ENABLED = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
+    RATE_LIMIT_ENABLED = os.getenv("RATE_LIMIT_ENABLED", "true").lower()[0] in [
+        "1",
+        "y",
+        "t",
+    ]
     RATE_LIMIT_STORAGE_URI = os.getenv("REDIS_URL", "memory://")
     RATE_LIMIT_UPLOAD = os.getenv("RATE_LIMIT_UPLOAD", "10 per hour")
     RATE_LIMIT_DEFAULT = os.getenv("RATE_LIMIT_DEFAULT", "200 per day")
@@ -68,7 +72,11 @@ class Config:
     _in_container = os.path.exists("/.dockerenv") or os.getenv("KUBERNETES_SERVICE_HOST")
     HOST = os.getenv("FLASK_HOST", "0.0.0.0" if _in_container else "127.0.0.1")
     PORT = int(os.getenv("FLASK_PORT", "8000"))
-    DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+    DEBUG = os.getenv("FLASK_DEBUG", "false").lower()[0] in [
+        "1",
+        "y",
+        "t",
+    ]
     FLASK_ENV = os.getenv("FLASK_ENV", "production")
 
     @classmethod
