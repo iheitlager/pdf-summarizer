@@ -120,7 +120,7 @@ class TestExtractTextFromPDF:
             pdf_file = tmp_path / "test.pdf"
             pdf_file.write_bytes(sample_pdf.read())
 
-            text, page_count = utils.extract_text_from_pdf(str(pdf_file), app.logger)
+            text, page_count = utils.extract_text_from_pdf(str(pdf_file))
 
             assert isinstance(text, str)
             assert len(text) > 0
@@ -132,7 +132,7 @@ class TestExtractTextFromPDF:
             pdf_file = tmp_path / "multi.pdf"
             pdf_file.write_bytes(multipage_pdf.read())
 
-            text, page_count = utils.extract_text_from_pdf(str(pdf_file), app.logger)
+            text, page_count = utils.extract_text_from_pdf(str(pdf_file))
 
             assert isinstance(text, str)
             assert page_count == 3
@@ -144,7 +144,7 @@ class TestExtractTextFromPDF:
             pdf_file.write_bytes(corrupted_pdf.read())
 
             with pytest.raises(Exception) as exc_info:
-                utils.extract_text_from_pdf(str(pdf_file), app.logger)
+                utils.extract_text_from_pdf(str(pdf_file))
 
             assert "Error reading PDF" in str(exc_info.value)
 
@@ -157,7 +157,7 @@ class TestSummarizeWithClaude:
         with app.app_context():
             text = "This is a test document with some content."
 
-            summary = summarize_with_claude(text, app.logger)
+            summary = summarize_with_claude(text)
 
             assert isinstance(summary, str)
             assert len(summary) > 0
@@ -170,7 +170,7 @@ class TestSummarizeWithClaude:
             # Create text longer than 100k characters
             long_text = "x" * 150000
 
-            summarize_with_claude(long_text, app.logger)
+            summarize_with_claude(long_text)
 
             # Verify API was called with truncated text
             call_args = mock_anthropic.call_args
@@ -187,7 +187,7 @@ class TestSummarizeWithClaude:
             )
 
             with pytest.raises(Exception) as exc_info:
-                summarize_with_claude("test text", app.logger)
+                summarize_with_claude("test text")
 
             assert "Error with Claude API" in str(exc_info.value)
 

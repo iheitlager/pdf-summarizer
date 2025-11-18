@@ -10,6 +10,8 @@ import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
+from flask import current_app
+
 from .config import Config
 
 
@@ -54,13 +56,6 @@ def setup_logging(app):
     error_handler.setLevel(logging.ERROR)
     error_handler.setFormatter(detailed_formatter)
 
-    # API log handler (for external API calls)
-    api_handler = RotatingFileHandler(
-        log_dir / "api.log", maxBytes=Config.LOG_MAX_BYTES, backupCount=Config.LOG_BACKUP_COUNT
-    )
-    api_handler.setLevel(logging.INFO)
-    api_handler.setFormatter(simple_formatter)
-
     # Console handler for development
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.DEBUG if app.debug else logging.INFO)
@@ -78,49 +73,53 @@ def setup_logging(app):
     app.logger.info(f"Debug Mode: {app.debug}")
 
 
-def log_upload(logger, filename, file_size, session_id):
+def log_upload(filename, file_size, session_id):
     """Log file upload event"""
-    logger.info(f"Upload: {filename} | Size: {file_size} bytes | Session: {session_id[:8]}...")
+    current_app.logger.info(
+        f"Upload: {filename} | Size: {file_size} bytes | Session: {session_id[:8]}..."
+    )
 
 
-def log_processing(logger, filename, pages, chars, duration):
+def log_processing(filename, pages, chars, duration):
     """Log PDF processing completion"""
-    logger.info(
+    current_app.logger.info(
         f"Processed: {filename} | Pages: {pages} | Chars: {chars:,} | Duration: {duration:.2f}s"
     )
 
 
-def log_api_call(logger, operation, duration, success=True, error=None):
+def log_api_call(operation, duration, success=True, error=None):
     """Log external API calls"""
     status = "SUCCESS" if success else "FAILED"
     msg = f"API Call: {operation} | Duration: {duration:.2f}s | Status: {status}"
     if error:
         msg += f" | Error: {error}"
-        logger.error(msg)
+        current_app.logger.error(msg)
     else:
-        logger.info(msg)
+        current_app.logger.info(msg)
 
 
-def log_cache_hit(logger, file_hash):
+def log_cache_hit(file_hash):
     """Log cache hit event"""
-    logger.info(f"Cache HIT: {file_hash[:16]}... (returning cached summary)")
+    current_app.logger.info(f"Cache HIT: {file_hash[:16]}... (returning cached summary)")
 
 
-def log_cache_miss(logger, file_hash):
+def log_cache_miss(file_hash):
     """Log cache miss event"""
-    logger.info(f"Cache MISS: {file_hash[:16]}... (processing new file)")
+    current_app.logger.info(f"Cache MISS: {file_hash[:16]}... (processing new file)")
 
 
-def log_rate_limit(logger, identifier, endpoint):
+def log_rate_limit(identifier, endpoint):
     """Log rate limit event"""
-    logger.warning(f"Rate limit exceeded: {identifier} on {endpoint}")
+    current_app.logger.warning(f"Rate limit exceeded: {identifier} on {endpoint}")
 
 
-def log_cleanup(logger, deleted_count, freed_space_mb):
+def log_cleanup(deleted_count, freed_space_mb):
     """Log cleanup operation"""
-    logger.info(f"Cleanup completed: {deleted_count} files deleted | {freed_space_mb:.2f} MB freed")
+    current_app.logger.info(
+        f"Cleanup completed: {deleted_count} files deleted | {freed_space_mb:.2f} MB freed"
+    )
 
 
-def log_error_with_context(logger, error, context):
+def log_error_with_context(error, context):
     """Log error with additional context"""
-    logger.error(f"Error: {str(error)} | Context: {context}", exc_info=True)
+    current_app.logger.error(f"Error: {str(error)} | Context: {context}", exc_info=True)

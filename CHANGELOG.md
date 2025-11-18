@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2025-11-18
+
+### Changed
+- **Logging Architecture**: Simplified logging across codebase by removing logger parameters from helper functions and using `current_app.logger` consistently
+- **Removed**: Logger parameters from `logging_config.py`, `utils.py`, and `claude_service.py`
+- **Removed**: Unused `api_handler`, `api.log` file handler, and `mock_api_logger` test fixture
+- **Updated**: All call sites to use `current_app.logger` directly instead of passing logger arguments
+
+---
+
 ## [0.4.0] - 2025-11-18
 
 ### Added

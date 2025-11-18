@@ -148,7 +148,7 @@ def register_routes(app):
                     file_path, unique_filename, original_filename, file_size = save_uploaded_file(
                         file, app.config["UPLOAD_FOLDER"]
                     )
-                    log_upload(app.logger, original_filename, file_size, session_id)
+                    log_upload(original_filename, file_size, session_id)
 
                     # Calculate file hash for caching
                     file_hash = calculate_file_hash(file_path)
@@ -158,7 +158,7 @@ def register_routes(app):
 
                     if cached_upload:
                         # Cache hit - create new upload record pointing to cached summary
-                        log_cache_hit(app.logger, file_hash)
+                        log_cache_hit(file_hash)
 
                         upload = Upload(
                             filename=unique_filename,
@@ -186,7 +186,7 @@ def register_routes(app):
 
                     else:
                         # Cache miss - process the file
-                        log_cache_miss(app.logger, file_hash)
+                        log_cache_miss(file_hash)
 
                         # Create upload record
                         upload = Upload(
@@ -202,11 +202,11 @@ def register_routes(app):
                         db.session.flush()  # Get the ID without committing
 
                         # Extract text from PDF
-                        text, page_count = extract_text_from_pdf(file_path, app.logger)
+                        text, page_count = extract_text_from_pdf(file_path)
 
                         # Generate summary with Claude using selected prompt
                         summary_text = summarize_with_claude(
-                            text, app.logger, prompt_text=prompt_template.prompt_text
+                            text, prompt_text=prompt_template.prompt_text
                         )
 
                         # Create summary record
@@ -220,9 +220,7 @@ def register_routes(app):
                         db.session.add(summary)
 
                         processing_time = time.time() - start_time
-                        log_processing(
-                            app.logger, original_filename, page_count, len(text), processing_time
-                        )
+                        log_processing(original_filename, page_count, len(text), processing_time)
 
                     processed_ids.append(upload.id)
 
@@ -241,9 +239,7 @@ def register_routes(app):
 
             except Exception as e:
                 db.session.rollback()
-                log_error_with_context(
-                    app.logger, e, f"Upload processing for session {session_id[:8]}"
-                )
+                log_error_with_context(e, f"Upload processing for session {session_id[:8]}")
                 flash(f"Error processing files: {str(e)}", "error")
                 return redirect(request.url)
 
@@ -273,7 +269,7 @@ def register_routes(app):
             app.logger.info(f"Displaying results for {len(uploads)} uploads")
             return render_template("results.html", uploads=uploads)
         except Exception as e:
-            log_error_with_context(app.logger, e, f"Results display for IDs: {ids}")
+            log_error_with_context(e, f"Results display for IDs: {ids}")
             flash(f"Error loading results: {str(e)}", "error")
             return redirect(url_for("index"))
 
@@ -309,7 +305,7 @@ def register_routes(app):
                 buffer, as_attachment=True, download_name=download_name, mimetype="text/plain"
             )
         except Exception as e:
-            log_error_with_context(app.logger, e, f"Download summary {summary_id}")
+            log_error_with_context(e, f"Download summary {summary_id}")
             flash(f"Error downloading summary: {str(e)}", "error")
             return redirect(url_for("index"))
 
@@ -369,7 +365,7 @@ def register_routes(app):
                 return redirect(request.url)
             except Exception as e:
                 db.session.rollback()
-                log_error_with_context(app.logger, e, "Create prompt template")
+                log_error_with_context(e, "Create prompt template")
                 flash(f"Error creating prompt template: {str(e)}", "error")
                 return redirect(request.url)
 
@@ -407,7 +403,7 @@ def register_routes(app):
                 return redirect(request.url)
             except Exception as e:
                 db.session.rollback()
-                log_error_with_context(app.logger, e, f"Edit prompt template {prompt_id}")
+                log_error_with_context(e, f"Edit prompt template {prompt_id}")
                 flash(f"Error updating prompt template: {str(e)}", "error")
                 return redirect(request.url)
 
@@ -439,7 +435,7 @@ def register_routes(app):
 
         except Exception as e:
             db.session.rollback()
-            log_error_with_context(app.logger, e, f"Delete prompt template {prompt_id}")
+            log_error_with_context(e, f"Delete prompt template {prompt_id}")
             flash(f"Error deleting prompt template: {str(e)}", "error")
 
         return redirect(url_for("prompts_list"))
