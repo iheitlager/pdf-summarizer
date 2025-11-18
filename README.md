@@ -200,7 +200,6 @@ or use my [env.sh](https://github.com/iheitlager/dotfiles/blob/main/bin/env.sh) 
 
 ## Project Structure
 ```
-```
 .
 ├── src/pdf_summarizer/         # Main application code
 │   ├── main.py                 # Flask application entry point
