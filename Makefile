@@ -8,6 +8,7 @@ LOCAL_DOMAIN := pdf-summarizer.local
 
 .PHONY: env install install-dev test help clean run lint format type-check check
 .PHONY: start stop cleanup build rebuild run-docker logs shell down docker-clean
+.PHONY: sbom audit sbom-check
 
 version: ## Show project version
 	@uv run python -c "import pdf_summarizer; print(f'pdf_summarizer version: {pdf_summarizer.__version__}')"
@@ -36,6 +37,11 @@ env: ## Create and populate the development virtual environment
 	@uv run python -c "import pdf_summarizer; print(f'pdf_summarizer version: {pdf_summarizer.__version__}')"
 	@echo "To activate: source $(VENV)/bin/activate"
 
+sync: ## Sync dependencies into the virtual environment
+	@echo "Syncing dependencies into virtual environment..."
+	uv sync > /dev/null
+	uv sync --group dev > /dev/null
+	@echo "✓ Dependencies synced"
 
 settings: ## Create configuration settings .env
 	@echo "Creating settings"
@@ -86,6 +92,32 @@ clean: ## Remove virtualenv, artifacts, and caches
 run: ## Launch the Flask application via uv
 	@echo "Starting application..."
 	uv run python -m main
+
+## ===================================
+## SBOM & Security Commands
+## ===================================
+
+sbom: ## Generate Software Bill of Materials (SBOM)
+	@echo "Generating SBOM..."
+	@uv pip freeze > requirements.txt
+	@uv run cyclonedx-py requirements requirements.txt -o sbom.json --of JSON
+	@rm requirements.txt
+	@echo "✓ SBOM generated: sbom.json"
+
+audit: ## Run security vulnerability audit
+	@echo "Running security audit..."
+	@uv run pip-audit --desc
+	@echo "✓ Security audit complete"
+
+sbom-check: ## Generate SBOM and run security audit
+	@echo "Running comprehensive SBOM and security check..."
+	@uv pip freeze > requirements.txt
+	@uv run cyclonedx-py requirements requirements.txt -o sbom.json --of JSON
+	@echo "✓ SBOM generated: sbom.json"
+	@uv run pip-audit --format json --output security-report.json
+	@echo "✓ Security report: security-report.json"
+	@rm requirements.txt
+	@echo "✓ SBOM check complete"
 
 ## ===================================
 ## Docker/Colima Commands

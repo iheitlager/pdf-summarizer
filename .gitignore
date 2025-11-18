@@ -33,7 +33,6 @@ htmlcov/
 
 # Virtual Environment
 .venv/
-uv.lock
 .python-version
 logs/
 
@@ -84,3 +83,8 @@ htmlcov/
 *.egg
 dist/
 build/
+
+# SBOM & Security
+sbom*.json
+security-report.json
+requirements.txt

@@ -37,3 +37,7 @@ jobs:
 
       - name: Enforce coverage threshold
         run: uv run coverage report --fail-under=70
+
+      - name: Security audit
+        run: uv run pip-audit --desc
+        continue-on-error: true

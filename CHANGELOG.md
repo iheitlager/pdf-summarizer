@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] - 2025-01-18
+
+### Added
+- **SBOM & Security**: CycloneDX SBOM generation and `pip-audit` vulnerability scanning
+- **Makefile Targets**: `make sbom`, `make audit`, `make sbom-check` commands
+- **GitHub Actions**: Automated SBOM and security audit workflows
+- **Dependencies**: `cyclonedx-bom>=4.0.0`, `pip-audit>=2.6.0`
+
+### Changed
+- Updated `.gitignore` for SBOM artifacts
+
+---
+
 ## [0.4.1] - 2025-11-18
 
 ### Changed

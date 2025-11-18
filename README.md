@@ -1,6 +1,6 @@
 # PDF Summarizer
 
-**Version**: 0.4.1 | [Changelog](./CHANGELOG.md)
+**Version**: 0.4.3 | [Changelog](./CHANGELOG.md)
 
 A Flask web application that uploads PDF files and generates AI-powered summaries using Anthropic's Claude API.
 
@@ -269,6 +269,41 @@ Daily background job (default 3 AM) to delete uploads older than retention perio
   - Secure filename sanitization
 - **Input Sanitization**: werkzeug.utils.secure_filename
 - **Environment Variables**: Sensitive data stored in .env
+- **SBOM & Security Audits**: Automated Software Bill of Materials generation and vulnerability scanning
+
+### SBOM (Software Bill of Materials)
+
+The project generates a comprehensive Software Bill of Materials using CycloneDX format and performs automated security vulnerability scanning.
+
+#### Generate SBOM
+
+```bash
+make sbom          # Generate SBOM in CycloneDX JSON format
+make audit         # Run security vulnerability audit
+make sbom-check    # Generate SBOM and run security audit
+```
+
+This creates:
+- `sbom.json` - CycloneDX format SBOM listing all dependencies
+- `security-report.json` - Detailed vulnerability report (when using `sbom-check`)
+
+#### Automated Security Checks
+
+Security audits run automatically on:
+- Every pull request (via `.github/workflows/pr-checks.yml`)
+- Weekly schedule (Mondays at midnight UTC via `.github/workflows/sbom-check.yml`)
+- Manual workflow dispatch in GitHub Actions
+
+#### SBOM Artifacts
+
+SBOM and security reports are uploaded as GitHub Actions artifacts with 90-day retention. You can download them from the Actions tab in GitHub.
+
+#### Tools Used
+
+- **cyclonedx-bom**: Generates CycloneDX format SBOM from Python dependencies
+- **pip-audit**: PyPA's official vulnerability scanner checking against the OSV database
+
+For implementation details, see [docs/adr/0014-implement-sbom-generation.md](docs/adr/0014-implement-sbom-generation.md).
 
 ## Development
 
