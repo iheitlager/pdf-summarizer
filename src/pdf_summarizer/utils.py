@@ -5,6 +5,7 @@ import hashlib
 import os
 from datetime import datetime
 
+from flask import current_app
 from pypdf import PdfReader
 from werkzeug.utils import secure_filename
 
@@ -19,7 +20,7 @@ def calculate_file_hash(file_path):
     return sha256_hash.hexdigest()
 
 
-def extract_text_from_pdf(file_path, logger=None):
+def extract_text_from_pdf(file_path):
     """Extract text from PDF file using pypdf"""
     try:
         reader = PdfReader(file_path)
@@ -28,8 +29,7 @@ def extract_text_from_pdf(file_path, logger=None):
             text += page.extract_text() + "\n"
         return text, len(reader.pages)
     except Exception as e:
-        if logger:
-            logger.error(f"PDF extraction failed for {file_path}: {str(e)}")
+        current_app.logger.error(f"PDF extraction failed for {file_path}: {str(e)}")
         raise Exception(f"Error reading PDF: {str(e)}") from e
 
 

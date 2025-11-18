@@ -24,7 +24,7 @@ class TestLoggingConfiguration:
 
     def test_log_upload_formats_correctly(self, mock_logger):
         """Should format upload log message correctly."""
-        logging_config.log_upload(mock_logger, "test.pdf", 1024, "session-123")
+        logging_config.log_upload("test.pdf", 1024, "session-123")
 
         # Should be called with formatted message
         assert mock_logger.info.called
@@ -33,27 +33,25 @@ class TestLoggingConfiguration:
 
     def test_log_processing_includes_metrics(self, mock_logger):
         """Should include processing metrics in log."""
-        logging_config.log_processing(mock_logger, "test.pdf", 10, 5000, 5.5)
+        logging_config.log_processing("test.pdf", 10, 5000, 5.5)
 
         assert mock_logger.info.called
 
     def test_log_api_call_success(self, mock_logger):
         """Should log successful API call."""
-        logging_config.log_api_call(mock_logger, "Test Operation", 2.5, success=True)
+        logging_config.log_api_call("Test Operation", 2.5, success=True)
 
         assert mock_logger.info.called
 
     def test_log_api_call_failure(self, mock_logger):
         """Should log failed API call."""
-        logging_config.log_api_call(
-            mock_logger, "Test Operation", 2.5, success=False, error="API Error"
-        )
+        logging_config.log_api_call("Test Operation", 2.5, success=False, error="API Error")
 
         assert mock_logger.error.called
 
     def test_log_cache_hit(self, mock_logger):
         """Should log cache hit event."""
-        logging_config.log_cache_hit(mock_logger, "abc123def456")
+        logging_config.log_cache_hit("abc123def456")
 
         assert mock_logger.info.called
         call_args = str(mock_logger.info.call_args)
@@ -61,12 +59,12 @@ class TestLoggingConfiguration:
 
     def test_log_cache_miss(self, mock_logger):
         """Should log cache miss event."""
-        logging_config.log_cache_miss(mock_logger, "xyz789")
+        logging_config.log_cache_miss("xyz789")
 
         assert mock_logger.info.called
 
     def test_log_cleanup_includes_statistics(self, mock_logger):
         """Should log cleanup statistics."""
-        logging_config.log_cleanup(mock_logger, 5, 10.5)
+        logging_config.log_cleanup(5, 10.5)
 
         assert mock_logger.info.called

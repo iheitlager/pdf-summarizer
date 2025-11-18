@@ -334,14 +334,6 @@ def mock_logger(mocker, app):
 
 
 @pytest.fixture
-def mock_api_logger(mocker, app):
-    """Mock the API logger."""
-    # The api_logger is created in the factory, we need to mock it via the app context
-    mock_logger = mocker.Mock()
-    return mock_logger
-
-
-@pytest.fixture
 def mock_cleanup_job(mocker):
     """Mock the cleanup job function."""
     return mocker.patch("pdf_summarizer.cleanup.cleanup_old_uploads")

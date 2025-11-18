@@ -52,11 +52,8 @@ def cleanup_old_uploads(app):
             db.session.commit()
 
             freed_space_mb = freed_space / (1024 * 1024)
-            log_cleanup(app.logger, deleted_count, freed_space_mb)
-            app.logger.info(
-                f"Cleanup completed: {deleted_count} files, {freed_space_mb:.2f} MB freed"
-            )
+            log_cleanup(deleted_count, freed_space_mb)
 
         except Exception as e:
             db.session.rollback()
-            log_error_with_context(app.logger, e, "Cleanup job")
+            log_error_with_context(e, "Cleanup job")

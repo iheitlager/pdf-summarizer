@@ -49,5 +49,5 @@ def register_error_handlers(app):
     @app.errorhandler(429)
     def ratelimit_handler(e):
         """Handle 429 Rate Limit Exceeded errors."""
-        log_rate_limit(app.logger, get_remote_address(), request.endpoint)
+        log_rate_limit(get_remote_address(), request.endpoint)
         return render_template("errors/429.html"), 429

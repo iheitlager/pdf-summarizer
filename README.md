@@ -1,6 +1,6 @@
 # PDF Summarizer
 
-**Version**: 0.4.0 | [Changelog](./CHANGELOG.md)
+**Version**: 0.4.1 | [Changelog](./CHANGELOG.md)
 
 A Flask web application that uploads PDF files and generates AI-powered summaries using Anthropic's Claude API.
 
