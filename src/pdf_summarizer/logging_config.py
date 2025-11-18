@@ -118,9 +118,7 @@ def log_rate_limit(logger, identifier, endpoint):
 
 def log_cleanup(logger, deleted_count, freed_space_mb):
     """Log cleanup operation"""
-    logger.info(
-        f"Cleanup completed: {deleted_count} files deleted | " f"{freed_space_mb:.2f} MB freed"
-    )
+    logger.info(f"Cleanup completed: {deleted_count} files deleted | {freed_space_mb:.2f} MB freed")
 
 
 def log_error_with_context(logger, error, context):

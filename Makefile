@@ -22,8 +22,8 @@ env: ## Create and populate the development virtual environment
 	@echo "✓ Setting up development environment with Python $(PYTHON_VERSION)..."
 	uv venv $(VENV) --python $(PYTHON_VERSION) --clear > /dev/null
 	@echo "✓ Virtual environment created at $(VENV)/"
-	uv pip install --python $(VENV)/bin/python -e . >/dev/null
-	uv pip install --python $(VENV)/bin/python -e ".[dev]" >/dev/null
+	@uv sync  > /dev/null
+	@uv sync --group dev  > /dev/null
 	@mkdir -p logs
 	@mkdir -p uploads
 	@if [ ! -f uv.lock ]; then \

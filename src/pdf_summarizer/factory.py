@@ -12,7 +12,6 @@ and configures Flask application instances. This pattern enables:
 - Proper separation of concerns
 """
 
-
 from flask import Flask
 
 from .claude_service import validate_claude_model

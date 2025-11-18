@@ -27,10 +27,13 @@ def main():
     # Validate configuration
     Config.from_cli_args()
 
-    app = create_app(start_scheduler=not any("pytest" in arg or "conftest" in arg for arg in sys.argv))
+    app = create_app(
+        start_scheduler=not any("pytest" in arg or "conftest" in arg for arg in sys.argv)
+    )
 
     # Run the application
     app.run(host=Config.HOST, port=Config.PORT, debug=Config.DEBUG)
+
 
 if __name__ == "__main__":
     main()
