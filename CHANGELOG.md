@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-11-18
+
+### Added
+- **Docker Support**: Multi-stage, multi-platform Dockerfile for AMD64 (AWS Fargate) and ARM64 (Apple Silicon, AWS Graviton)
+- **docker-compose.yml**: Local development setup with Colima compatibility
+- **Colima Makefile Commands**: `start`, `build`, `rebuild`, `cleanup`, `stop`, `logs`, `shell` for Docker workflows
+- **Health Check Endpoint**: `/health` endpoint for container monitoring with JSON status response
+- **.dockerignore**: Optimized Docker build exclusions
+- **.env.docker**: Template for Docker-specific environment configuration
+- **Docker Documentation**: Comprehensive deployment guide in README.md
+
+### Changed
+- **Default Paths**: Now Docker-compatible with configurable paths via environment variables
+- **Flask Host**: Defaults to `0.0.0.0` in containerized environments for external access
+- **Build System**: Uses `pyproject.toml` as single source of truth in Docker builds
+
+---
+
 ## [0.3.0] - 2025-11-17
 
 ### Added

@@ -19,13 +19,13 @@ class Config:
 
     # Flask Configuration
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///pdf_summaries.db")
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///../../data/db/pdf_summaries.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     MAX_CONTENT_LENGTH = int(os.getenv("MAX_FILE_SIZE_MB", "10")) * 1024 * 1024
     PERMANENT_SESSION_LIFETIME = timedelta(days=int(os.getenv("SESSION_LIFETIME_DAYS", "30")))
 
     # Upload Configuration
-    UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "uploads")
+    UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "data/uploads")
 
     # Anthropic API Configuration
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
@@ -46,14 +46,18 @@ class Config:
     )
 
     # Rate Limiting Configuration
-    RATE_LIMIT_ENABLED = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
+    RATE_LIMIT_ENABLED = os.getenv("RATE_LIMIT_ENABLED", "true").lower()[0] in [
+        "1",
+        "y",
+        "t",
+    ]
     RATE_LIMIT_STORAGE_URI = os.getenv("REDIS_URL", "memory://")
     RATE_LIMIT_UPLOAD = os.getenv("RATE_LIMIT_UPLOAD", "10 per hour")
     RATE_LIMIT_DEFAULT = os.getenv("RATE_LIMIT_DEFAULT", "200 per day")
 
     # Logging Configuration
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-    LOG_DIR = os.getenv("LOG_DIR", "logs")
+    LOG_DIR = os.getenv("LOG_DIR", "data/logs")
     LOG_MAX_BYTES = int(os.getenv("LOG_MAX_BYTES", str(10 * 1024 * 1024)))  # 10MB
     LOG_BACKUP_COUNT = int(os.getenv("LOG_BACKUP_COUNT", "5"))
 
@@ -63,9 +67,16 @@ class Config:
     CLEANUP_MINUTE = int(os.getenv("CLEANUP_MINUTE", "0"))
 
     # Flask Server Configuration
-    HOST = os.getenv("FLASK_HOST", "127.0.0.1")
-    PORT = int(os.getenv("FLASK_PORT", "5000"))
-    DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+    # Default to 0.0.0.0 in Docker containers, 127.0.0.1 otherwise
+    # Check for common container indicators
+    _in_container = os.path.exists("/.dockerenv") or os.getenv("KUBERNETES_SERVICE_HOST")
+    HOST = os.getenv("FLASK_HOST", "0.0.0.0" if _in_container else "127.0.0.1")
+    PORT = int(os.getenv("FLASK_PORT", "8000"))
+    DEBUG = os.getenv("FLASK_DEBUG", "false").lower()[0] in [
+        "1",
+        "y",
+        "t",
+    ]
     FLASK_ENV = os.getenv("FLASK_ENV", "production")
 
     @classmethod
@@ -115,7 +126,7 @@ class Config:
             "--host", type=str, help="Host to bind the server to (default: 127.0.0.1)"
         )
         server_group.add_argument(
-            "--port", "-p", type=int, help="Port to bind the server to (default: 5000)"
+            "--port", "-p", type=int, help="Port to bind the server to (default: 8000)"
         )
         server_group.add_argument("--debug", "-d", action="store_true", help="Enable debug mode")
 

@@ -63,7 +63,7 @@ class TestConfigDefaults:
     def test_default_server_config(self):
         """Should have correct server defaults."""
         assert Config.HOST == "127.0.0.1"
-        assert Config.PORT == 5000
+        assert Config.PORT == 8000
         assert Config.DEBUG is False
         assert Config.FLASK_ENV == "production"
 
