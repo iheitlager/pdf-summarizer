@@ -13,21 +13,20 @@ services:
       - ./.ssl-certs/nginx.crt:/etc/nginx/ssl/nginx.crt:ro
       - ./.ssl-certs/nginx.key:/etc/nginx/ssl/nginx.key:ro
     depends_on:
-      - pdf-summarizer-1
-      - pdf-summarizer-2
+      - pdf-summarizer
+      # - pdf-summarizer-2
     networks:
       - local-net
 
-  pdf-summarizer-1:
+  pdf-summarizer:
     build:
       context: .
       dockerfile: docker/Dockerfile.dev
       target: runtime
     image: pdf-summarizer:latest
-    container_name: pdf-summarizer-1
     platform: linux/arm64  # Change to linux/amd64 for Intel/AMD systems
-    ports:
-      - "8000:8000"
+    # ports:
+    #   - "8000:8000"
     volumes:
       - ./data/db:/app/data/db
       - ./data/uploads:/app/uploads
@@ -49,38 +48,72 @@ services:
       start_period: 5s
     networks:
       - local-net
+    deploy:
+      replicas: 2
+  
+  # pdf-summarizer-1:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/Dockerfile.dev
+  #     target: runtime
+  #   image: pdf-summarizer:latest
+  #   container_name: pdf-summarizer-1
+  #   platform: linux/arm64  # Change to linux/amd64 for Intel/AMD systems
+  #   ports:
+  #     - "8000:8000"
+  #   volumes:
+  #     - ./data/db:/app/data/db
+  #     - ./data/uploads:/app/uploads
+  #     - ./data/logs:/app/logs
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - FLASK_HOST=0.0.0.0
+  #     - FLASK_PORT=8000
+  #     - DATABASE_URL=sqlite:////app/data/db/pdf_summaries.db
+  #     - UPLOAD_FOLDER=/app/uploads
+  #     - LOG_DIR=/app/logs
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 5s
+  #   networks:
+  #     - local-net
 
-  pdf-summarizer-2:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.dev
-      target: runtime
-    image: pdf-summarizer:latest
-    container_name: pdf-summarizer-2
-    platform: linux/arm64  # Change to linux/amd64 for Intel/AMD systems
-    ports:
-      - "8001:8000"
-    volumes:
-      - ./data/db:/app/data/db
-      - ./data/uploads:/app/uploads
-      - ./data/logs:/app/logs
-    env_file:
-      - .env
-    environment:
-      - FLASK_HOST=0.0.0.0
-      - FLASK_PORT=8000
-      - DATABASE_URL=sqlite:////app/data/db/pdf_summaries.db
-      - UPLOAD_FOLDER=/app/uploads
-      - LOG_DIR=/app/logs
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 5s
-    networks:
-      - local-net
+  # pdf-summarizer-2:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/Dockerfile.dev
+  #     target: runtime
+  #   image: pdf-summarizer:latest
+  #   container_name: pdf-summarizer-2
+  #   platform: linux/arm64  # Change to linux/amd64 for Intel/AMD systems
+  #   ports:
+  #     - "8001:8000"
+  #   volumes:
+  #     - ./data/db:/app/data/db
+  #     - ./data/uploads:/app/uploads
+  #     - ./data/logs:/app/logs
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - FLASK_HOST=0.0.0.0
+  #     - FLASK_PORT=8000
+  #     - DATABASE_URL=sqlite:////app/data/db/pdf_summaries.db
+  #     - UPLOAD_FOLDER=/app/uploads
+  #     - LOG_DIR=/app/logs
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 5s
+  #   networks:
+  #     - local-net
 
 networks:
   local-net:

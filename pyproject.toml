@@ -10,7 +10,7 @@ dependencies = [
     "flask-wtf~=1.2.2",
     "flask-limiter~=4.0.0",
     "flask-migrate~=4.1.0",
-    "anthropic~=0.73.0",
+    "anthropic~=0.74.0",
     "pypdf~=6.3.0",
     "python-dotenv~=1.2.1",
     "apscheduler~=3.11.1",
@@ -28,6 +28,7 @@ dev = [
     "ruff>=0.14.5",
     "cyclonedx-bom>=4.0.0",
     "pip-audit>=2.6.0",
+    "coverage~=7.12.0",
 ]
 
 [project.scripts]
