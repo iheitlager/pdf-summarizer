@@ -77,6 +77,11 @@ make lint         # Check code with ruff
 make format       # Format with black and ruff
 make type-check   # Type check with mypy
 make clean        # Remove venv and build artifacts
+
+# SBOM & Security
+make sbom         # Generate Software Bill of Materials
+make audit        # Run security vulnerability audit
+make sbom-check   # Generate SBOM and run security audit
 ```
 
 ## Development Workflow
@@ -298,6 +303,36 @@ uploads = Upload.query.options(db.joinedload(Upload.summaries)).all()
 ```
 
 ## Common Tasks
+
+### Generate SBOM and Security Reports
+
+The project includes automated Software Bill of Materials (SBOM) generation and security vulnerability scanning:
+
+```bash
+# Generate SBOM in CycloneDX JSON format
+make sbom
+
+# Run security vulnerability audit
+make audit
+
+# Generate both SBOM and security report
+make sbom-check
+```
+
+**What gets generated:**
+- `sbom.json` - CycloneDX format SBOM with all Python dependencies
+- `security-report.json` - Vulnerability report from pip-audit
+
+**Tools used:**
+- `cyclonedx-bom` - SBOM generation (CycloneDX format)
+- `pip-audit` - PyPA's official vulnerability scanner
+
+**CI/CD Integration:**
+- Runs on every PR (security audit only)
+- Weekly scheduled full SBOM check (Mondays at midnight UTC)
+- Artifacts uploaded to GitHub Actions with 90-day retention
+
+See [docs/adr/0014-implement-sbom-generation.md](docs/adr/0014-implement-sbom-generation.md) for implementation details and tool selection rationale.
 
 ### Update Claude Model Version
 

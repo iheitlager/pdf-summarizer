@@ -4,7 +4,9 @@
       "Bash(make type-check:*)",
       "Bash(git checkout:*)",
       "Bash(uv run pytest:*)",
-      "Bash(uv run:*)"
+      "Bash(uv run:*)",
+      "Bash(git push:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Add comprehensive SBOM generation and security scanning\n\nImplement Software Bill of Materials (SBOM) generation using CycloneDX\nformat and automated security vulnerability scanning with pip-audit.\n\nAdded:\n- SBOM generation with cyclonedx-bom (CycloneDX JSON format)\n- Security vulnerability scanning with pip-audit (PyPA official tool)\n- Makefile targets: make sbom, make audit, make sbom-check\n- GitHub Actions workflow for automated SBOM/security checks\n- Weekly scheduled SBOM generation (Mondays at midnight UTC)\n- Security audit step in PR checks workflow\n- Comprehensive documentation in README.md and CLAUDE.md\n- ADR-0014 documenting implementation decisions\n- SBOM artifacts uploaded to GitHub Actions (90-day retention)\n\nChanged:\n- Version bumped to 0.4.3 in all required locations\n- Updated .gitignore to exclude SBOM artifacts\n- Updated pyproject.toml with cyclonedx-bom and pip-audit dependencies\n- Enhanced CI/CD pipeline with security scanning\n\nDependencies:\n- cyclonedx-bom>=4.0.0 - SBOM generation\n- pip-audit>=2.6.0 - Security vulnerability scanning\n\nImplementation follows industry best practices for software supply chain\nsecurity and provides transparency into all project dependencies.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []
